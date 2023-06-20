@@ -79,6 +79,8 @@ public class RestAdapter {
 			sslContext.init(null, trustManagers, null);
 			final long timeout = 600;
 			this.client = new OkHttpClient.Builder()
+					.followRedirects(false)
+					.followSslRedirects(false)
 					.cookieJar(getCookieJar())
 					.connectTimeout(timeout, TimeUnit.SECONDS)
 					.readTimeout(timeout, TimeUnit.SECONDS)

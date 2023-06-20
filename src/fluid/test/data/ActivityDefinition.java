@@ -366,7 +366,7 @@ public class ActivityDefinition {
 		} else {
 			if (!saveDataResponse.hasCtrlProps() && saveDataResponse.getSaveSuccess()) {
 				String savedRecordId = saveDataResponse.getSaveRowId();
-				if (savedRecordId != null && getGenSearchDataSourceDefinition() != null) {
+				if (savedRecordId != null && !savedRecordId.isEmpty() && getGenSearchDataSourceDefinition() != null) {
 					GetResultsRequest getResultsRequest = new GetResultsRequest();
 					getResultsRequest.setParam("rowid", savedRecordId);
 					AppServerAdapter.getInstance().getResults(this, getResultsRequest);

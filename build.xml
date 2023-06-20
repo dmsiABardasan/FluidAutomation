@@ -19,13 +19,13 @@
 	</target>
 	
 	<target name="init-reports" depends="clean-reports">
-		<mkdir dir="reports/${report}" />
-		<mkdir dir="reports/${report}/raw/" />
-		<mkdir dir="reports/${report}/html/" />
+		<mkdir dir="reports/${report.dir}" />
+		<mkdir dir="reports/${report.dir}/raw/" />
+		<mkdir dir="reports/${report.dir}/html/" />
 	</target>
 	
 	<target name="clean-reports">
-		<delete dir="reports/${report}" />
+		<delete dir="reports/${report.dir}" />
 	</target>
 	
 	<target name="compile" depends="init">
@@ -47,7 +47,7 @@
 	</target>
 
 	<target name="test-rail-collation">
-		<java classname="utils.testRail.TestRailCollator" fork="yes">
+		<java classname="auto.utils.testRail.TestRailCollator" fork="yes">
 			<classpath>
 				<pathelement path="${build}" />
 				
@@ -59,17 +59,6 @@
 				</fileset>
 			</classpath>
 			<sysproperty key="fluidServer" value="${fluid.server}"/>
-		</java>
-	</target>
-	
-	<target name="setup-system-control">
-		<java classname="utils.SetupSystemControl" fork="yes">
-			<classpath>
-				<pathelement path="${build}" />
-				<pathelement path="${openedge.lib}"/>
-			</classpath>
-			<sysproperty key="systemName" value="${system.name}"/>
-			<sysproperty key="stixPort" value="${stixport}"/>
 		</java>
 	</target>
 	
@@ -91,44 +80,10 @@
 			
 			<sysproperty key="userDetails" value="${userDetails}"/>
 			
-			<batchtest todir="reports/${report}/raw/">
-				<formatter classname="utils.reporting.CustomFormatter" extension=".xml"/>
-				<fileset dir="${src}/test/java">
-					<include name="runner/JunitTemplate.java" />
-				</fileset>
-			</batchtest>
-
-		</junit>
-	</target>
-	
-	<target name="run-tests" depends="init-reports">
-		<junit printsummary="yes" haltonfailure="no" showoutput="no" fork="yes" forkmode="once">
-			<classpath>
-				<pathelement path="${build}" />
-				<pathelement path="${openedge.lib}"/>
-				
-				<fileset dir="${auto.project}/lib">
-					<include name="**/*.jar" />
-				</fileset>
-				<fileset dir="${lib}">
-					<include name="**/*.jar" />
-				</fileset>
-			</classpath>
-			
-			<sysproperty key="fluidServer" value="${fluid.server}"/>
-			<sysproperty key="sessionType" value="${session.type}"/>
-			<sysproperty key="testRailServer" value="${testrail}"/>
-			<sysproperty key="stixPort" value="${stixport}"/>
-			
-			<sysproperty key="userDetails" value="${userDetails}"/>
-			
-			<batchtest todir="reports/${report}/raw/">
-				<formatter classname="utils.reporting.CustomFormatter" extension=".xml"/>
-				<fileset dir="${src}/test/java">
-					<include name="runner/api/*.java" />
-					<include name="runner/miscellaneous/**/*.java" />
-					<include name="runner/testSuites/*/**/*.java" />
-					<include name="runner/flow/**/*.java" />
+			<batchtest todir="reports/${report.dir}/raw/">
+				<formatter classname="auto.utils.reporting.CustomFormatter" extension=".xml"/>
+				<fileset dir="${src}">
+					<include name="auto/test/template/JunitTemplate.java" />
 				</fileset>
 			</batchtest>
 
@@ -152,14 +107,14 @@
 			<sysproperty key="fluidServer" value="${fluid.server}"/>
 			<sysproperty key="sessionType" value="${session.type}"/>
 			<sysproperty key="testRailServer" value="${testrail}"/>
-			<sysproperty key="stixPort" value="${stixport}"/>
+			<sysproperty key="openedge.port" value="${openedge.port}"/>
 			
 			<sysproperty key="testArguments" value="${testArguments}"/>
 			<sysproperty key="userDetails" value="${userDetails}"/>
 			
-			<batchtest todir="reports/${report}/raw/">
-				<formatter classname="utils.reporting.CustomFormatter" extension=".xml"/>
-				<fileset dir="${src}/test/java">
+			<batchtest todir="reports/${report.dir}/raw/">
+				<formatter classname="auto.utils.reporting.CustomFormatter" extension=".xml"/>
+				<fileset dir="${auto.project}/src/test/java">
 					<include name="${selectTests}.java" />
 				</fileset>
 			</batchtest>
@@ -168,15 +123,15 @@
 	</target>
 
 	<target name="publish">
-		<junitreport todir="reports/${report}">
-			<fileset dir="reports/${report}/raw/">
+		<junitreport todir="reports/${report.dir}">
+			<fileset dir="reports/${report.dir}/raw/">
 				<include name="TEST-*.xml" />
 			</fileset>
-			<report styledir="reportstyles" format="frames" todir="reports/${report}/html/">
+			<report styledir="reportstyles" format="frames" todir="reports/${report.dir}/html/">
 		        <param name="jira" expression="${jira}"/>
 		        <param name="testrail" expression="${testrail}"/>
 			</report>
-			<report styledir="reportstyles" format="noframes" todir="reports/${report}/html/">
+			<report styledir="reportstyles" format="noframes" todir="reports/${report.dir}/html/">
 		        <param name="jira" expression="${jira}"/>
 		        <param name="testrail" expression="${testrail}"/>
 			</report>
@@ -211,7 +166,7 @@
 	</target>
 	
 	<target name="progress-collation" depends="compile">
-		<java classname="utils.coverage.ProgressActivities" fork="true">
+		<java classname="auto.utils.coverage.ProgressActivities" fork="true">
 			<classpath>
 				<pathelement path="${build}" />
 				<fileset dir="${auto.project}/lib">
@@ -226,9 +181,8 @@
 		</java>
 	</target>
 	
-	<target name="all" depends="compile, test-rail-collation, run-tests, publish" />
+	<target name="all" depends="compile, test-rail-collation, run-select-tests, publish" />
 	<target name="build-only" depends="compile, test-rail-collation" />
-	<target name="test-only" depends="run-tests, publish" />
 	<target name="select-test-only" depends="run-select-tests, publish" />
 	<target name="test-only-test" depends="run-tests-test, publish" />
 </project>

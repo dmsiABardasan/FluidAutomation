@@ -4,6 +4,7 @@ import org.junit.runner.JUnitCore;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 
+import auto.test.template.JunitTemplate;
 import fluid.test.adapter.AppServerAdapter;
 
 /**

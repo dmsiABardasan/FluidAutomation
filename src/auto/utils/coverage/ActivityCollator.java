@@ -28,7 +28,7 @@ public class ActivityCollator {
 		File automationFile = new File(AppServerAdapterRecorder.FLUID_ACTIVITY_OUTPUT + "_Activities.dat");
 		File progressFile;
 		if (automationOnly) {
-			progressFile = new File(AppServerAdapterRecorder.FLUID_ACTIVITY_OUTPUT + "_Activities.dat");;
+			progressFile = automationFile;
 		} else {
 			progressFile = new File(ProgressActivities.PROGRESS_ACTIVITY_OUTPUT + "_Activities.dat");
 		}

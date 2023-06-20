@@ -767,12 +767,14 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					loadActivityRequest.setCtrlProp(keyArray[0].substring(0, keyArray[0].lastIndexOf(".")), CtrlPropEnum.BUTTONCLICK, "");
 				}
 			}else {
-    			Object ctrlPropValue = findParentActivityValue(keyArray[1]);
-    			if (ctrlPropValue != null) {
-		    		loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, String.valueOf(ctrlPropValue));
-    			}else {
-    				loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, keyArray[1]);
-    			}
+				if (keyArray.length == 2) {
+	    			Object ctrlPropValue = findParentActivityValue(keyArray[1]);
+	    			if (ctrlPropValue != null) {
+			    		loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, String.valueOf(ctrlPropValue));
+	    			}else {
+	    				loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, keyArray[1]);
+	    			}
+				}
 			}
 		}
 	}
