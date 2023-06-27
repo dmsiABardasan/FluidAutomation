@@ -628,15 +628,17 @@ public class Step {
 					if (!(asyncValidations = activityDefRes.getAsyncValidations()).isEmpty()) {
 						List<Step> asyncSteps = new ArrayList<Step>();
 						for (PresentationMessage oResponse : asyncValidations) {
-							String[] tableField = oResponse.getCallingField().split("\\.");
-							
-							Step asyncStep = new Step(step.getValidationType(), tableField[0], tableField[1]);
-							asyncStep.setAuto(true);
-							asyncStep.setContractType(CtrlPropEnum.VALIDATIONCONTRACT);
-							asyncStep.getLabel().add("WARNING - Asynchronous step");
-							validationResponseHandling(activityDefRes, asyncStep, oResponse);
-							
-							asyncSteps.add(asyncStep);
+							if (oResponse.getCallingField() != null) {
+								String[] tableField = oResponse.getCallingField().split("\\.");
+								
+								Step asyncStep = new Step(step.getValidationType(), tableField[0], tableField[1]);
+								asyncStep.setAuto(true);
+								asyncStep.setContractType(CtrlPropEnum.VALIDATIONCONTRACT);
+								asyncStep.getLabel().add("WARNING - Asynchronous step");
+								validationResponseHandling(activityDefRes, asyncStep, oResponse);
+								
+								asyncSteps.add(asyncStep);
+							}
 						}
 						asyncValidations.clear();
 						procedure.addAll(1 + i, asyncSteps);
