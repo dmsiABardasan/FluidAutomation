@@ -10,6 +10,7 @@ import fluid.test.adapter.RestAdapter.MediaType;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.DataSourceDefinition;
 import fluid.test.data.FieldDefinition;
+import fluid.test.message.AbstractMessage;
 import fluid.test.message.ActivityTaskRequest;
 import fluid.test.message.ActivityTaskResponse;
 import fluid.test.message.GetResultsRequest;
@@ -70,83 +71,81 @@ public abstract class AppServerAdapter {
 	}
     
 	public LoadActivityResponse loadActivityDef(ActivityDefinition activityDefinition, LoadActivityRequest loadActivityRequest) throws Throwable {
-		activityDefinition.setCommonParams(loadActivityRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.loadActivityDef, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, loadActivityRequest.serializeMessage(), headers(), MediaType.JSON));
-		LoadActivityResponse loadActivityResponse = new LoadActivityResponse(response);
-/*		System.out.println("LoadActivityDef request: " + loadActivityRequest.serializeMessage());
-		System.out.println("LoadActivityDef response: " + loadActivityResponse + "\n");*/
+		LoadActivityResponse loadActivityResponse = (LoadActivityResponse) sendAppServerApiRequest(AppServerApiEnum.loadActivityDef, activityDefinition, null, loadActivityRequest);
 		activityDefinition.initializeModel(loadActivityResponse);
-		
 		return loadActivityResponse;
 	}
 	
 	public GetResultsResponse getResults(ActivityDefinition activityDefinition, GetResultsRequest getResultsRequest) throws Throwable {
-		activityDefinition.setCommonParams(getResultsRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.getResults, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, getResultsRequest.serializeMessage(), headers(), MediaType.JSON));
-		GetResultsResponse getResultsResponse = new GetResultsResponse(response);
-/*		System.out.println("GetResults request: " + getResultsRequest.serializeMessage());
-		System.out.println("GetResults response: " + getResultsResponse.serializeMessage() + "\n");*/
+		GetResultsResponse getResultsResponse = (GetResultsResponse) sendAppServerApiRequest(AppServerApiEnum.getResults, activityDefinition, null, getResultsRequest);
 		activityDefinition.processGetResultsResponse(getResultsResponse);
-		
 		return getResultsResponse;
 	}
 	
 	public LoadDataResponse loadData(ActivityDefinition activityDefinition, LoadDataRequest loadDataRequest) throws Throwable {
-		activityDefinition.setCommonParams(loadDataRequest);
 		activityDefinition.setLastLoadDataRequest(loadDataRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.loadData, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, loadDataRequest.serializeMessage(), headers(), MediaType.JSON));
-		LoadDataResponse loadDataResponse = new LoadDataResponse(response, loadDataRequest.getLoadMode());
-/*		System.out.println("LoadData request: " + loadDataRequest.serializeMessage());
-		System.out.println("LoadData response: " + loadDataResponse.serializeMessage() + "\n");*/
+		LoadDataResponse loadDataResponse = (LoadDataResponse) sendAppServerApiRequest(AppServerApiEnum.loadData, activityDefinition, null, loadDataRequest);
 		activityDefinition.processLoadDataResponse(loadDataResponse);
-		
 		return loadDataResponse;
 	}
 	
 	public SaveDataResponse saveData(ActivityDefinition activityDefinition, SaveDataRequest saveDataRequest) throws Throwable {
-		activityDefinition.setCommonParams(saveDataRequest);
-
-		String url = buildUrlForApp(AppServerApiEnum.saveData, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, saveDataRequest.serializeMessage(), headers(), MediaType.JSON));
-		SaveDataResponse saveDataResponse = new SaveDataResponse(response);
-/*		System.out.println("SaveData request: " + saveDataRequest.serializeMessage());
-		System.out.println("SaveData response: " + saveDataResponse.serializeMessage() + "\n");*/
+		SaveDataResponse saveDataResponse = (SaveDataResponse) sendAppServerApiRequest(AppServerApiEnum.saveData, activityDefinition, null, saveDataRequest);
 		activityDefinition.processSaveDataResponse(saveDataResponse);
-		
 		return saveDataResponse;
 	}
 	
 	public PresentationMessage presenter(ActivityDefinition activityDefinition, String ipFunction, PresentationMessage ipRequest) throws Throwable {
-		activityDefinition.setCommonParams(ipRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.presenter, activityDefinition.getService(), ipFunction);
-		String response = processResponse(RestAdapter.getInstance().post(url, ipRequest.serializeMessage(), headers(), MediaType.JSON));
-		PresentationMessage oResponse = new PresentationMessage(response);
+		PresentationMessage oResponse = (PresentationMessage) sendAppServerApiRequest(AppServerApiEnum.presenter, activityDefinition, ipFunction, ipRequest);
 		oResponse.setCallingField(ipRequest.getCallingField());
-/*		System.out.println("Presenter request: " + ipRequest.serializeMessage());
-		System.out.println("Presenter response: " + oResponse.serializeMessage() + "\n");*/
 		activityDefinition.processResponse(oResponse);
-		
 		return oResponse;
 	}
 	
 	public ActivityTaskResponse submitActivityTask(ActivityDefinition activityDefinition, ActivityTaskRequest activityTaskRequest) throws Throwable {
-		activityDefinition.setCommonParams(activityTaskRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.submitActivityTask, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, activityTaskRequest.serializeMessage(), headers(), MediaType.JSON));
-		ActivityTaskResponse activityTaskResponse = new ActivityTaskResponse(response);
-/*		System.out.println("SubmitActivityTask request: " + activityTaskResponse.serializeMessage());
-		System.out.println("SubmitActivityTask response: " + activityTaskResponse.serializeMessage() + "\n");*/
+		ActivityTaskResponse activityTaskResponse = (ActivityTaskResponse) sendAppServerApiRequest(AppServerApiEnum.submitActivityTask, activityDefinition, null, activityTaskRequest);
 		activityDefinition.processLoadDataResponse(activityTaskResponse);
-		
 		return activityTaskResponse;
+	}
+	
+	public Response sendAppServerApiRequest(AppServerApiEnum appServerApi, ActivityDefinition activityDefinition, String ipFunction, AbstractMessage request) throws Throwable {
+		activityDefinition.setCommonParams(request);
+		
+		Response response;
+		String url = buildUrlForApp(appServerApi, activityDefinition.getService(), ipFunction);
+		RestAdapter.Response restResponse = RestAdapter.getInstance().post(url, request.serializeMessage(), headers(), MediaType.JSON);
+		
+		String responseBody = processResponse(restResponse);
+		
+		switch (appServerApi) {
+			case getResults:
+				response = new GetResultsResponse(responseBody);
+				break;
+			case loadActivityDef:
+				response = new LoadActivityResponse(responseBody);
+				break;
+			case loadData:
+				response = new LoadDataResponse(responseBody, ((LoadDataRequest) request).getLoadMode());
+				break;
+			case presenter:
+				response = new PresentationMessage(responseBody);
+				break;
+			case saveData:
+				response = new SaveDataResponse(responseBody);
+				break;
+			case submitActivityTask:
+				response = new ActivityTaskResponse(responseBody);
+				break;
+			default:
+				throw new IllegalArgumentException("Unhandled AppServerApi!");
+		}
+		
+/*		System.out.println(appServerApi + " request: " + request.serializeMessage());
+		System.out.println(appServerApi + " response: " + response.serializeMessage() + "\n");*/
+		
+		setResponseMetaData(restResponse, response);
+		
+		return response;
 	}
 	
 	public Response fluidVersion() throws Throwable {
@@ -236,6 +235,11 @@ public abstract class AppServerAdapter {
 	        hexChars[j * 2 + 1] = HEX_ARRAY[v & 0x0F];
 	    }
 	    return new String(hexChars, StandardCharsets.UTF_8);
+	}
+	
+	public static void setResponseMetaData(RestAdapter.Response restResponse, Response fluidResponse) {
+		fluidResponse.setSentTime(restResponse.getSentRequestAtMillis());
+		fluidResponse.setReceivedTime(restResponse.getReceivedResponseAtMillis());
 	}
 	
 	public String processResponse(RestAdapter.Response response) throws IOException {

@@ -7,6 +7,7 @@ import fluid.test.adapter.AppServerAdapter;
 import fluid.test.adapter.AppServerApiEnum;
 import fluid.test.adapter.RestAdapter;
 import fluid.test.data.ActivityDefinition;
+import fluid.test.message.AbstractMessage;
 import fluid.test.message.ActivityTaskRequest;
 import fluid.test.message.ActivityTaskResponse;
 import fluid.test.message.GetResultsRequest;
@@ -173,5 +174,9 @@ public abstract class AppServerAdapterSock extends AppServerAdapter {
 	@Override
 	public boolean allowOrphanFields() {
 		return getAppServerAdapter().allowOrphanFields();
+	}
+	@Override
+	public Response sendAppServerApiRequest(AppServerApiEnum appServerApi, ActivityDefinition activityDefinition,String ipFunction, AbstractMessage request) throws Throwable {
+		return super.sendAppServerApiRequest(appServerApi, activityDefinition, ipFunction, request);
 	}
 }

@@ -28,6 +28,7 @@ import fluid.test.message.PresentationMessage;
 public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 	
 	private List<String[]> nextTableFields = new ArrayList<String[]>();
+	private List<PresentationMessage> asyncValidations = new ArrayList<PresentationMessage>(); 
 	private ActivityDefinition activityReference;
 	private boolean runOnce = false;
 	
@@ -141,6 +142,14 @@ public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 		this.activityReference = activityReference;
 	}
 	
+	public List<PresentationMessage> getAsyncValidations() {
+		return this.asyncValidations;
+	}
+
+	public void setAsyncValidations(List<PresentationMessage> asyncValidations) {
+		this.asyncValidations = asyncValidations;
+	}
+	
 	/**
 	 * <p>
 	 * Using the overridden {@link #processResponse(PresentationMessage)
@@ -218,6 +227,13 @@ public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 		}
 		
 		return oResponse;
+	}
+	
+	@Override
+	public List<PresentationMessage> validateAsynchronously(String[][] tableFields) throws Throwable {
+		List<PresentationMessage> oResponses = super.validateAsynchronously(tableFields);
+		this.asyncValidations = oResponses;
+		return oResponses;
 	}
 	
 	/**

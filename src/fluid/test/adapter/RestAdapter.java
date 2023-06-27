@@ -272,6 +272,9 @@ public class RestAdapter {
 		private int code;
 		private Map<String, List<String>> headers;
 		
+		private long sentRequestAtMillis;
+		private long receivedResponseAtMillis;
+		
 		public Response() {}
 		
 		public Response(okhttp3.Response response) throws IOException {
@@ -279,6 +282,8 @@ public class RestAdapter {
 			this.responseBody = response.body().string();
 			this.code = response.code();
 			this.headers = response.headers().toMultimap();
+			this.sentRequestAtMillis = response.sentRequestAtMillis();
+			this.receivedResponseAtMillis = response.receivedResponseAtMillis();
 		}
 
 		public String getRequestUrl() {
@@ -292,6 +297,12 @@ public class RestAdapter {
 		}
 		public Map<String, List<String>> getHeaders() {
 			return headers;
+		}
+		public long getSentRequestAtMillis() {
+			return this.sentRequestAtMillis;
+		}
+		public long getReceivedResponseAtMillis() {
+			return this.receivedResponseAtMillis;
 		}
 		public Response setRequestUrl(String requestUrl) {
 			this.requestUrl = requestUrl;
@@ -309,5 +320,12 @@ public class RestAdapter {
 			this.headers = headers;
 			return this;
 		}
+		public void setSentRequestAtMillis(long sentRequestAtMillis) {
+			this.sentRequestAtMillis = sentRequestAtMillis;
+		}
+		public void setReceivedResponseAtMillis(long receivedResponseAtMillis) {
+			this.receivedResponseAtMillis = receivedResponseAtMillis;
+		}
+		
 	}
 }

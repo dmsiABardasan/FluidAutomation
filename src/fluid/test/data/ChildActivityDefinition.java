@@ -3,6 +3,7 @@ package fluid.test.data;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -662,47 +663,72 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		if (getType() == LaunchContractType.SEARCH) {
 			LoadDataResponse loadDataResponse = (LoadDataResponse) response;
 			
-			String tableField = getTableField();
+			String[] tableField = getTableField().split("\\.");
+			
 			if (returnProps != null && !returnProps.isEmpty()) {
 				String[] pairs = returnProps.split("\\,");
 				
-				for (String pair : pairs) {
+				String[][] asyncTableFields = new String[pairs.length][2];
+				
+				for (int i = 0 ; i < pairs.length ; i ++) {
+					String pair = pairs[i];
 					String[] tableKey = pair.split("=");
-	
+					
 					if (tableKey[0].equals("saveSearchCriteria") && tableKey[1].startsWith("y")) {
-						String table = tableField.split("\\.")[0];
-						String field = tableField.split("\\.")[1];
+						String table = tableField[0];
+						String field = tableField[1];
+						
 						Object value = loadDataResponse.getParamAsObject("finderReturn");
 						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-					}else {
-						String table = tableKey[0].split("\\.")[0];
-						String field = tableKey[0].split("\\.")[1];
+						asyncTableFields[i][0] = table;
+						asyncTableFields[i][1] = field;
+					} else {
+						String[] tableKeySplit = tableKey[0].split("\\.");
+						String table = tableKeySplit[0];
+						String field = tableKeySplit[1];
+						
 						Object value = loadDataResponse.getParamAsObject(tableKey[1]);
 						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+						asyncTableFields[i][0] = table;
+						asyncTableFields[i][1] = field;
 					}
 				}
-			}else {
+				parentActivityDef.validateAsynchronously(asyncTableFields);
+			} else {
 				if (response.hasCtrlProps()) {
-					String table = tableField.split("\\.")[0];
-					String field = tableField.split("\\.")[1];
+					String table = tableField[0];
+					String field = tableField[1];
+					
 					Object value = loadDataResponse.getCtrlProp("dummy", CtrlPropEnum.SCREENVALUE);
 					parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+					parentActivityDef.validateField(table, field);
+					parentActivityDef.validateAsynchronously(new String[][] {{table,field}}); // Despite just being one validation, still needs the method for potential implementations
 				}
 			}
-		}else if(getType() == LaunchContractType.LOADDATA) {
+		} else if (getType() == LaunchContractType.LOADDATA) {
 			SaveDataResponse saveDataResponse = (SaveDataResponse) response;
 			
 			if (returnProps != null && !returnProps.isEmpty()) {
 				String[] pairs = returnProps.split("\\,");
 				
-				for (String pair : pairs) {
+				String[][] asyncTableFields = new String[pairs.length][2];
+				
+				for (int i = 0 ; i < pairs.length ; i++ ) {
+					String pair = pairs[i];
 					String[] tableKey = pair.split("=");
-					String table = tableKey[0].split("\\.")[0];
-					String field = tableKey[0].split("\\.")[1];
+					String[] tableKeySplit = tableKey[0].split("\\.");
+					
+					String table = tableKeySplit[0];
+					String field = tableKeySplit[1];
 					Object value = saveDataResponse.getParamAsObject(tableKey[1]);
+					
 					parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+					parentActivityDef.validateField(table, field);
+					asyncTableFields[i][0] = table;
+					asyncTableFields[i][1] = field;
 				}
-			}else {
+				parentActivityDef.validateAsynchronously(asyncTableFields);
+			} else {
 				parentActivityDef.processResponse(saveDataResponse); 
 			}
 		}
@@ -769,11 +795,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			}else {
 				if (keyArray.length == 2) {
 	    			Object ctrlPropValue = findParentActivityValue(keyArray[1]);
-	    			if (ctrlPropValue != null) {
-			    		loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, String.valueOf(ctrlPropValue));
-	    			}else {
-	    				loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, keyArray[1]);
-	    			}
+			    	loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, Objects.toString(ctrlPropValue, ""));
 				}
 			}
 		}

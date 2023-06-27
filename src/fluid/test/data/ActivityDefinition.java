@@ -5,6 +5,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +35,7 @@ import fluid.test.message.LoadDataModeEnum;
 import fluid.test.message.LoadDataRequest;
 import fluid.test.message.LoadDataResponse;
 import fluid.test.message.PresentationMessage;
+import fluid.test.message.Response;
 import fluid.test.message.SaveDataResponse;
 
 public class ActivityDefinition {
@@ -47,6 +49,8 @@ public class ActivityDefinition {
    private DataSourceDefinition advSearchDataSourceDefinition;
    private boolean closed;
    private String service;
+   
+   private boolean asyncResponses = false;
    
    private String messageKeyPin;
    private String operatorID;
@@ -388,6 +392,10 @@ public class ActivityDefinition {
 
    public void processResponse(PresentationMessage responseMessage) throws Throwable {
 
+	   if (this.asyncResponses) {
+		   return;
+	   }
+	   
       List<UpdateTableDefinition> refreshTables = new ArrayList<UpdateTableDefinition>();
       List<UpdateTableDefinition> updateTables = new ArrayList<UpdateTableDefinition>();
       List<CtrlProp> buttonClickEventForList = new ArrayList<CtrlProp>();
@@ -568,12 +576,46 @@ public class ActivityDefinition {
       PresentationMessage oRequest = buildValidationContract( tableName, fieldName, cValidationContract, EventTypeEnum.LEAVE);
       
       oRequest.setCallingField(tableFieldName);
+      
       PresentationMessage oResponse = AppServerAdapter.getInstance().presenter(this, cValidationFunction, oRequest);
       
       return oResponse;
    }
    
-
+	public List<PresentationMessage> validateAsynchronously(String[][] tableFields) throws Throwable  {
+		
+		List<PresentationMessage> oResponses = new ArrayList<PresentationMessage>();
+		
+		this.asyncResponses = true;
+		try {
+			for (String[] tableField : tableFields) {
+				if (tableField.length != 2) {
+					continue;
+				}
+				oResponses.add(validateField(tableField[0], tableField[1]));
+			}
+		} finally {
+			this.asyncResponses = false;
+		}
+		
+		Collections.sort(oResponses, new AsyncResponseComparator());
+		
+		for (PresentationMessage oResponse : oResponses) {
+			processResponse(oResponse);
+		}
+		
+		return oResponses;
+	}
+   
+	protected class AsyncResponseComparator implements Comparator<Response> {
+		@Override
+		public int compare(Response o1, Response o2) {
+/*			System.out.println("o1 " + o1.getResponseTime());
+			System.out.println("o2 " + o2.getResponseTime());*/
+			return Long.compare(o1.getResponseTime(), o2.getResponseTime());
+		}
+	}
+	
    private void checkFieldValueInList(String tableName, String fieldName, String list) throws Throwable {
 
       Record record = this.dataSourceDefinitionMap.get(tableName).getCurrentRecord();

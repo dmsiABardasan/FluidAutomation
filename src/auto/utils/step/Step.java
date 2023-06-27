@@ -23,7 +23,6 @@ import fluid.test.adapter.AppServerAdapter;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ActivityDefinitionResponseCascader;
 import fluid.test.data.ChildActivityDefinition;
-import fluid.test.data.ChildActivityDefinition.LaunchContractType;
 import fluid.test.data.DataSourceDefinition;
 import fluid.test.message.CtrlPropEnum;
 import fluid.test.message.CtrlPropPair;
@@ -32,6 +31,7 @@ import fluid.test.message.LoadDataModeEnum;
 import fluid.test.message.LoadDataRequest;
 import fluid.test.message.LoadDataResponse;
 import fluid.test.message.PresentationMessage;
+
 
 /**
  * <p>
@@ -605,33 +605,45 @@ public class Step {
 					}else {
 						activityDefRes = step.childHandling(childActivityDefList, activityDefRes, procedure, haltOnChildActivity, clickCrudButtons);
 					}
-				} catch (AssertionError ass) {
-					stepTrace(step, procedure, ass, i);
-				}
-				
-				PresentationMessage oResponse = step.getResponse();
-				if (oResponse != null) {
-					if (activityDefRes.isClosed()) {
-						step.getLabel().add("Closed activity \"" + step.getCalledActivityName() + "\"");
-						if (activityDefRes instanceof ChildActivityDefinition) {
-							ChildActivityDefinition childActivityDef = (ChildActivityDefinition) activityDefRes;
-							ActivityDefinitionResponseCascader parentActivityDef = ActivityDefinitionResponseCascader.getInstance(childActivityDef.getParentActivityDefinition());
-							
-							if (childActivityDef.getType() == LaunchContractType.SEARCH &&
-									childActivityDef.getTableField() != null &&
-									parentActivityDef.getModel().getCtrlProp(childActivityDef.getTableField(), CtrlPropEnum.VALIDATIONCONTRACT) != null) {	
-								procedure.add(1 + i, new Step(step.getValidationType(), childActivityDef.getTableField().split("\\.")));
+
+					PresentationMessage stepResponse = step.getResponse();
+					if (stepResponse != null) {
+						if (activityDefRes.isClosed()) {
+							step.getLabel().add("Closed activity \"" + step.getCalledActivityName() + "\"");
+							if (activityDefRes instanceof ChildActivityDefinition) {
+								ChildActivityDefinition childActivityDef = (ChildActivityDefinition) activityDefRes;
+								ActivityDefinitionResponseCascader parentActivityDef = ActivityDefinitionResponseCascader.getInstance(childActivityDef.getParentActivityDefinition());
+								activityDefRes = (ActivityDefinitionResponseCascader) parentActivityDef;
+							}else {
+								break;
 							}
-							
-							activityDefRes = (ActivityDefinitionResponseCascader) parentActivityDef;
-						}else {
-							break;
-						}
-					}else if (oResponse.getCtrlProp("window.parent", CtrlPropEnum.ACTIVITYCLOSE) != null) {
-						if (activityDefRes instanceof ChildActivityDefinition) {
-							step.getLabel().add("Closed parent activity \"" + ((ChildActivityDefinition) activityDefRes).getParentActivityName() + "\"");
+						} else if (stepResponse.getCtrlProp("window.parent", CtrlPropEnum.ACTIVITYCLOSE) != null) {
+							if (activityDefRes instanceof ChildActivityDefinition) {
+								step.getLabel().add("Closed parent activity \"" + ((ChildActivityDefinition) activityDefRes).getParentActivityName() + "\"");
+							}
 						}
 					}
+					
+					List<PresentationMessage> asyncValidations;
+					if (!(asyncValidations = activityDefRes.getAsyncValidations()).isEmpty()) {
+						List<Step> asyncSteps = new ArrayList<Step>();
+						for (PresentationMessage oResponse : asyncValidations) {
+							String[] tableField = oResponse.getCallingField().split("\\.");
+							
+							Step asyncStep = new Step(step.getValidationType(), tableField[0], tableField[1]);
+							asyncStep.setAuto(true);
+							asyncStep.setContractType(CtrlPropEnum.VALIDATIONCONTRACT);
+							asyncStep.getLabel().add("WARNING - Asynchronous step");
+							validationResponseHandling(activityDefRes, asyncStep, oResponse);
+							
+							asyncSteps.add(asyncStep);
+						}
+						asyncValidations.clear();
+						procedure.addAll(1 + i, asyncSteps);
+					}
+					
+				} catch (AssertionError ass) {
+					stepTrace(step, procedure, ass, i);
 				}
 				
 				try {

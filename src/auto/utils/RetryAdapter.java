@@ -7,8 +7,6 @@ import java.util.Map;
 
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.adapter.AppServerApiEnum;
-import fluid.test.adapter.RestAdapter;
-import fluid.test.adapter.RestAdapter.MediaType;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.message.ActivityTaskRequest;
 import fluid.test.message.ActivityTaskResponse;
@@ -90,11 +88,7 @@ public class RetryAdapter extends AppServerAdapterSock{
 	
 	@Override
 	public LoadActivityResponse loadActivityDef(ActivityDefinition activityDefinition, LoadActivityRequest loadActivityRequest) throws Throwable {
-		activityDefinition.setCommonParams(loadActivityRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.loadActivityDef, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, loadActivityRequest.serializeMessage(), headers(), MediaType.JSON));
-		LoadActivityResponse loadActivityResponse = new LoadActivityResponse(response);
+		LoadActivityResponse loadActivityResponse = (LoadActivityResponse) sendAppServerApiRequest(AppServerApiEnum.loadActivityDef, activityDefinition, null, loadActivityRequest);
 		
 		if (isRetryRecordLock() && retryRecordLock(activityDefinition.getService(), loadActivityResponse)) {
 			loadActivityResponse = loadActivityDef(activityDefinition, loadActivityRequest);
@@ -107,11 +101,7 @@ public class RetryAdapter extends AppServerAdapterSock{
 	
 	@Override
 	public GetResultsResponse getResults(ActivityDefinition activityDefinition, GetResultsRequest getResultsRequest) throws Throwable {
-		activityDefinition.setCommonParams(getResultsRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.getResults, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, getResultsRequest.serializeMessage(), headers(), MediaType.JSON));
-		GetResultsResponse getResultsResponse = new GetResultsResponse(response);
+		GetResultsResponse getResultsResponse = (GetResultsResponse) sendAppServerApiRequest(AppServerApiEnum.getResults, activityDefinition, null, getResultsRequest);
 		
 		if (isRetryRecordLock() && retryRecordLock(activityDefinition.getService(), getResultsResponse)) {
 			getResultsResponse = getResults(activityDefinition, getResultsRequest);
@@ -124,12 +114,9 @@ public class RetryAdapter extends AppServerAdapterSock{
 	
 	@Override
 	public LoadDataResponse loadData(ActivityDefinition activityDefinition, LoadDataRequest loadDataRequest) throws Throwable {
-		activityDefinition.setCommonParams(loadDataRequest);
 		activityDefinition.setLastLoadDataRequest(loadDataRequest);
 		
-		String url = buildUrlForApp(AppServerApiEnum.loadData, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, loadDataRequest.serializeMessage(), headers(), MediaType.JSON));
-		LoadDataResponse loadDataResponse = new LoadDataResponse(response, loadDataRequest.getLoadMode());
+		LoadDataResponse loadDataResponse = (LoadDataResponse) sendAppServerApiRequest(AppServerApiEnum.loadData, activityDefinition, null, loadDataRequest);
 		
 		if (isRetryRecordLock() && retryRecordLock(activityDefinition.getService(), loadDataResponse)) {
 			loadDataResponse = loadData(activityDefinition, loadDataRequest);
@@ -142,11 +129,7 @@ public class RetryAdapter extends AppServerAdapterSock{
 	
 	@Override
 	public SaveDataResponse saveData(ActivityDefinition activityDefinition, SaveDataRequest saveDataRequest) throws Throwable {
-		activityDefinition.setCommonParams(saveDataRequest);
-
-		String url = buildUrlForApp(AppServerApiEnum.saveData, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, saveDataRequest.serializeMessage(), headers(), MediaType.JSON));
-		SaveDataResponse saveDataResponse = new SaveDataResponse(response);
+		SaveDataResponse saveDataResponse = (SaveDataResponse) sendAppServerApiRequest(AppServerApiEnum.saveData, activityDefinition, null, saveDataRequest);
 		
 		if (isRetryRecordLock() && retryRecordLock(activityDefinition.getService(), saveDataResponse)) {
 			saveDataResponse = saveData(activityDefinition, saveDataRequest);
@@ -159,11 +142,7 @@ public class RetryAdapter extends AppServerAdapterSock{
 	
 	@Override
 	public PresentationMessage presenter(ActivityDefinition activityDefinition, String ipFunction, PresentationMessage ipRequest) throws Throwable {
-		activityDefinition.setCommonParams(ipRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.presenter, activityDefinition.getService(), ipFunction);
-		String response = processResponse(RestAdapter.getInstance().post(url, ipRequest.serializeMessage(), headers(), MediaType.JSON));
-		PresentationMessage oResponse = new PresentationMessage(response);
+		PresentationMessage oResponse = (PresentationMessage) sendAppServerApiRequest(AppServerApiEnum.presenter, activityDefinition, ipFunction, ipRequest);
 		
 		oResponse.setCallingField(ipRequest.getCallingField());
 		
@@ -178,11 +157,7 @@ public class RetryAdapter extends AppServerAdapterSock{
 	
 	@Override
 	public ActivityTaskResponse submitActivityTask(ActivityDefinition activityDefinition, ActivityTaskRequest activityTaskRequest) throws Throwable {
-		activityDefinition.setCommonParams(activityTaskRequest);
-		
-		String url = buildUrlForApp(AppServerApiEnum.submitActivityTask, activityDefinition.getService(), null);
-		String response = processResponse(RestAdapter.getInstance().post(url, activityTaskRequest.serializeMessage(), headers(), MediaType.JSON));
-		ActivityTaskResponse activityTaskResponse = new ActivityTaskResponse(response);
+		ActivityTaskResponse activityTaskResponse = (ActivityTaskResponse) sendAppServerApiRequest(AppServerApiEnum.submitActivityTask, activityDefinition, null, activityTaskRequest);
 		
 		if (isRetryRecordLock() && retryRecordLock(activityDefinition.getService(), activityTaskResponse)) { 
 			activityTaskResponse = submitActivityTask(activityDefinition, activityTaskRequest);

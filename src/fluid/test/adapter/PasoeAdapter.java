@@ -33,7 +33,7 @@ public class PasoeAdapter extends AppServerAdapter{
 		setContextId(contextId);
 	}
 	
-	private static String loginPost(RestAdapter rest, String host, String user, String password, String extra) throws IOException {
+	private static synchronized String loginPost(RestAdapter rest, String host, String user, String password, String extra) throws IOException {
 		final String url = host + "/static/auth/j_spring_security_check";
 		final CustomCookieJar cookieJar = rest.getCookieJar();
 		
@@ -43,9 +43,8 @@ public class PasoeAdapter extends AppServerAdapter{
 		try {
 			rest.post(MediaType.APPLICATION, url, 
 					"j_username="+ URLEncoder.encode(user, StandardCharsets.UTF_8)+"&" + 
-							"j_password=" + URLEncoder.encode(password,
-									StandardCharsets.UTF_8)+"&" + 
-															"SubmitButton=Submit", 
+					"j_password="+ URLEncoder.encode(password, StandardCharsets.UTF_8)+"&" + 
+					"SubmitButton=Submit", 
 					Collections.singletonMap("Cookie", "FID="+extra));
 			for (Cookie cookie : cookieJar.getCookies()) {
 				if ("JSESSIONID".equals(cookie.name())) {
