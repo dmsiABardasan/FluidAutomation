@@ -665,6 +665,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			
 			String[] tableField = getTableField().split("\\.");
 			
+			if (loadDataResponse.hasParam("finderReturn")) {
+				String table = tableField[0];
+				String field = tableField[1];
+				
+				Object value = loadDataResponse.getParamAsObject("finderReturn");
+				parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+				parentActivityDef.validateAsynchronously(new String[][] {{table,field}});
+			}
+			
 			if (returnProps != null && !returnProps.isEmpty()) {
 				String[] pairs = returnProps.split("\\,");
 				
@@ -675,13 +684,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					String[] tableKey = pair.split("=");
 					
 					if (tableKey[0].equals("saveSearchCriteria") && tableKey[1].startsWith("y")) {
-						String table = tableField[0];
-						String field = tableField[1];
-						
-						Object value = loadDataResponse.getParamAsObject("finderReturn");
-						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-						asyncTableFields[i][0] = table;
-						asyncTableFields[i][1] = field;
+						// Implementation of finders remembering assigned values
 					} else {
 						String[] tableKeySplit = tableKey[0].split("\\.");
 						String table = tableKeySplit[0];
@@ -694,15 +697,18 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					}
 				}
 				parentActivityDef.validateAsynchronously(asyncTableFields);
-			} else {
-				if (response.hasCtrlProps()) {
-					String table = tableField[0];
-					String field = tableField[1];
-					
-					Object value = loadDataResponse.getCtrlProp("dummy", CtrlPropEnum.SCREENVALUE);
-					parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-					parentActivityDef.validateField(table, field);
-					parentActivityDef.validateAsynchronously(new String[][] {{table,field}}); // Despite just being one validation, still needs the method for potential implementations
+			} 
+			
+			// Fluid's old style of the finder result process, with the same logic in all it's glory.
+			if (loadDataResponse.hasCtrlProps()) {
+				String table = tableField[0];
+				String field = tableField[1];
+				for (Map.Entry<CtrlPropPair, String> entry : loadDataResponse.getCtrlProperties().entrySet()) {
+					if (CtrlPropEnum.SCREENVALUE == entry.getKey().getProp()) {
+						Object value = entry.getValue();
+						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+						parentActivityDef.validateAsynchronously(new String[][] {{table,field}});
+					}
 				}
 			}
 		} else if (getType() == LaunchContractType.LOADDATA) {
