@@ -13,6 +13,8 @@ import fluid.test.data.Record;
 import fluid.test.message.CtrlPropEnum;
 import fluid.test.message.LoadActivityRequest;
 import fluid.test.message.LoadDataModeEnum;
+import fluid.test.message.LoadDataRequest;
+import fluid.test.message.PresentationMessage;
 
 public abstract class Dashboard extends FluidActivity {
 	
@@ -74,13 +76,22 @@ public abstract class Dashboard extends FluidActivity {
 			childActivityDefinition.setType(LaunchContractType.LOADDATA);
 			
 			LoadActivityRequest loadActivityRequest = new LoadActivityRequest();
+			LoadDataRequest loadDataRequest = new LoadDataRequest(LoadDataModeEnum.VIEW);
+			
+			if (activityDef.getInjectedParams() != null) {
+				PresentationMessage injectedParams = activityDef.getInjectedParams();
+				childActivityDefinition.setInjectedParams(injectedParams);
+				loadActivityRequest.getMoMsgParams().putAll(injectedParams.getMoMsgParams());
+				loadDataRequest.getMoMsgParams().putAll(injectedParams.getMoMsgParams());
+			}
+			
 			loadActivityRequest.setCtrlProp("dummy", CtrlPropEnum.LOADDATA, maintRowid);
 			loadActivityRequest.setParam("parentActivity", activityDef.getModel().getActivity());
 			
 			childActivityDefinition.resolveLaunchActivity(loadActivityRequest, ",," + service);
 			
 			ActivityDefinitionUtils.loadActivity(childActivityDefinition, loadActivityRequest, service);
-			ActivityDefinitionUtils.loadData(childActivityDefinition, LoadDataModeEnum.VIEW, maintRowid);
+			ActivityDefinitionUtils.loadData(childActivityDefinition, loadDataRequest, maintRowid);
 			
 			activityList.add(childActivityDefinition);
 		}

@@ -40,6 +40,10 @@ import fluid.test.message.SaveDataResponse;
 
 public class ActivityDefinition {
 
+   public static final Set<String> IGNORE_REPEAT_BUTTONS = new HashSet<String>();
+   static {
+	   IGNORE_REPEAT_BUTTONS.add("button.checkForNotice");
+   }
    private Set<String> serviceHistory = new HashSet<String>();
    private Set<ChildActivityDefinition> childSet = new LinkedHashSet<ChildActivityDefinition>();
    private Map<String, DataSourceDefinition> dataSourceDefinitionMap = new LinkedHashMap<String, DataSourceDefinition>();
@@ -47,6 +51,7 @@ public class ActivityDefinition {
    private DataSourceDefinition resultsDataSourceDefinition;
    private DataSourceDefinition genSearchDataSourceDefinition;
    private DataSourceDefinition advSearchDataSourceDefinition;
+   private PresentationMessage injectedParams;
    private boolean closed;
    private String service;
    
@@ -65,6 +70,14 @@ public class ActivityDefinition {
    public boolean mlDebugTrace;
    
    public ActivityDefinition() {}
+   
+   public PresentationMessage getInjectedParams() {
+	   return this.injectedParams;
+   }
+   
+   public void setInjectedParams(PresentationMessage injectedParams) {
+	   this.injectedParams = injectedParams;
+   }
    
    public Set<String> getHistory() {
 	   return Collections.unmodifiableSet(this.serviceHistory);
@@ -389,7 +402,11 @@ public class ActivityDefinition {
 			}
 		}
    }
-
+   
+   @FunctionalInterface
+   static interface RunnableThrows {
+       public abstract void run() throws Throwable;
+   }
    public void processResponse(PresentationMessage responseMessage) throws Throwable {
 
 	   if (this.asyncResponses) {
@@ -399,8 +416,7 @@ public class ActivityDefinition {
       List<UpdateTableDefinition> refreshTables = new ArrayList<UpdateTableDefinition>();
       List<UpdateTableDefinition> updateTables = new ArrayList<UpdateTableDefinition>();
       List<CtrlProp> buttonClickEventForList = new ArrayList<CtrlProp>();
-      String loadRowid = null;
-      boolean reloadData = false;
+      Set<RunnableThrows> deferred = new LinkedHashSet<RunnableThrows>();
       
        if (mlDebugTrace) {
           System.err.println("processResponse hasErrors: " + responseMessage.hasStopErrors() + " hasCtrlProps: " + responseMessage.hasCtrlProps());
@@ -420,55 +436,12 @@ public class ActivityDefinition {
           this.model.appendErrorSetFrom(responseMessage);
        }
        
-       if (responseMessage.hasCtrlProps()) {
-          
-          Map<CtrlPropPair, String> ctrlProperties = responseMessage.getCtrlProperties();
-          for (CtrlPropPair pair : ctrlProperties.keySet()) {
-             String cPropValue = ctrlProperties.get(pair);
-             String cCtrlName = pair.getName();
-             CtrlPropEnum oCtrlProp = pair.getProp();
-             
-             if (mlDebugTrace) {
-                System.err.println("Ctrl Prop: " + cCtrlName + " " + oCtrlProp.getValue() + " " + cPropValue);
-             }
-             
-            switch (oCtrlProp) {
-				case SCREENVALUE:
-					setScreenValue(cCtrlName, cPropValue);
-					break;
-				case BUTTONCLICK:
-					buttonClickEventForList.add(new CtrlProp(cCtrlName, oCtrlProp, cPropValue));
-					break;
-				case REFRESHTABLE:
-					refreshTables.add(new UpdateTableDefinition(cCtrlName, responseMessage.getParamAsDataSet(cPropValue)));
-					break;
-				case UPDATETABLE:
-					updateTables.add(new UpdateTableDefinition(cCtrlName, responseMessage.getParamAsDataSet(cPropValue)));
-					break;
-				case RELOADDATA:
-					reloadData = true;
-					break;
-				case LOADDATA:
-					loadRowid = cPropValue;
-					break;
-				default:
-					this.model.setCtrlProp(cCtrlName, oCtrlProp, cPropValue);
-					break;
-			}
-          }
+       for (Map.Entry<CtrlPropPair, String> ctrlPropEntry : responseMessage.getCtrlProperties().entrySet()) {
+    	   processResponseCtrlProps(ctrlPropEntry, responseMessage, deferred, refreshTables, updateTables, buttonClickEventForList);
        }
        
-       if (reloadData) {
-    	   AppServerAdapter.getInstance().loadData(this, getLastLoadDataRequest());
-       }
-       
-       if (loadRowid != null) {
-			LoadDataRequest loadDataRequest = getLastLoadDataRequest();
-			loadDataRequest.setLoadMode(loadRowid.isEmpty() 
-					? LoadDataModeEnum.ADD 
-					: LoadDataModeEnum.EDIT);
-			loadDataRequest.setLoadRowid(loadRowid);
-			AppServerAdapter.getInstance().loadData(this, loadDataRequest);
+       for (RunnableThrows runnable : deferred) {
+    	   runnable.run();
        }
        
        refreshTables(refreshTables);   
@@ -476,6 +449,56 @@ public class ActivityDefinition {
        
        applyClick(buttonClickEventForList);
    }
+   
+	protected void processResponseCtrlProps(Map.Entry<CtrlPropPair, String> ctrlPropEntry,
+			PresentationMessage responseMessage,
+			Set<RunnableThrows> deferred,
+			List<UpdateTableDefinition> refreshTables,
+			List<UpdateTableDefinition> updateTables,
+			List<CtrlProp> buttonClickEventForList) { 
+	
+		String cCtrlName = ctrlPropEntry.getKey().getName();
+		CtrlPropEnum oCtrlProp = ctrlPropEntry.getKey().getProp();
+		String cPropValue = ctrlPropEntry.getValue();
+		
+		if (mlDebugTrace) {
+			System.err.println("Ctrl Prop: " + cCtrlName + " " + oCtrlProp.getValue() + " " + cPropValue);
+		}
+		
+		switch (oCtrlProp) {
+			case SCREENVALUE:
+				setScreenValue(cCtrlName, cPropValue);
+				break;
+			case BUTTONCLICK:
+				buttonClickEventForList.add(new CtrlProp(cCtrlName, oCtrlProp, cPropValue));
+				break;
+			case REFRESHTABLE:
+				refreshTables.add(new UpdateTableDefinition(cCtrlName, responseMessage.getParamAsDataSet(cPropValue)));
+				break;
+			case UPDATETABLE:
+				updateTables.add(new UpdateTableDefinition(cCtrlName, responseMessage.getParamAsDataSet(cPropValue)));
+				break;
+			case RELOADDATA:
+				deferred.add(() -> AppServerAdapter.getInstance().loadData(this, getLastLoadDataRequest()));
+				break;
+			case LOADDATA:
+				final String loadRowid = cPropValue;
+				deferred.add(() ->  {
+					if (loadRowid != null) {
+						LoadDataRequest loadDataRequest = getLastLoadDataRequest();
+						loadDataRequest.setLoadMode(loadRowid.isEmpty() 
+								? LoadDataModeEnum.ADD 
+								: LoadDataModeEnum.EDIT);
+						loadDataRequest.setLoadRowid(loadRowid);
+						AppServerAdapter.getInstance().loadData(this, loadDataRequest);
+			       }
+				});
+				break;
+			default:
+				this.model.setCtrlProp(cCtrlName, oCtrlProp, cPropValue);
+				break;
+		}
+	}
 
    protected void applyClick(List<CtrlProp> buttonClickEventForList) throws Throwable {
 	   for (CtrlProp ctrlProp : buttonClickEventForList) {
@@ -489,7 +512,7 @@ public class ActivityDefinition {
 	           	if (!ctrlProp.getValue().trim().isEmpty()) {
 	           		
 	        		final Integer secondDelay = Integer.valueOf(ctrlProp.getValue());
-	        		if (secondDelay > 0) {
+	        		if (secondDelay > 0 && !IGNORE_REPEAT_BUTTONS.contains(ctrlProp.getName())) {
 					    getRepeatButtons().put(ctrlProp.getName(), secondDelay);
 	        		} else {
 	        			getRepeatButtons().remove(ctrlProp.getName());

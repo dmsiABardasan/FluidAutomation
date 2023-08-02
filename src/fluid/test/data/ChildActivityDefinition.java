@@ -3,13 +3,14 @@ package fluid.test.data;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.json.JsonObject;
-import fluid.test.message.AbstractMessage;
 import fluid.test.message.CtrlProp;
 import fluid.test.message.CtrlPropEnum;
 import fluid.test.message.CtrlPropPair;
@@ -84,6 +85,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	
 	private ActivityDefinition parentActivityDef;
 	private LaunchContractType type;
+	
+	private String contract;
 	private String returnProperties;
 	private String parentActivityName;
 	private String tableField;
@@ -125,6 +128,14 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		super();
 		this.parentActivityName = parentActivityDef.getModel().getActivity();
 		this.parentActivityDef = parentActivityDef;
+	}
+	
+	public String getContract() {
+		return this.contract;
+	}
+	
+	private void setContract(String contract) {
+		this.contract = contract;
 	}
 	
 	private boolean isDisabled() {
@@ -326,6 +337,141 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		}
 	}
 	
+	@Override
+	protected void processResponseCtrlProps(Entry<CtrlPropPair, String> ctrlPropEntry,
+			PresentationMessage responseMessage,
+			Set<RunnableThrows> deferred,
+			List<UpdateTableDefinition> refreshTables,
+			List<UpdateTableDefinition> updateTables,
+			List<CtrlProp> buttonClickEventForList) {
+		
+		String cCtrlName = ctrlPropEntry.getKey().getName();
+		CtrlPropEnum oCtrlProp = ctrlPropEntry.getKey().getProp();
+		String cPropValue = ctrlPropEntry.getValue();
+		
+		if (CtrlPropEnum.ACTIVITYINJECTPARENT == oCtrlProp) {
+			final ActivityDefinition parent;
+			if ("grandparent".equalsIgnoreCase(cCtrlName)) {
+				parent = ((ChildActivityDefinition) this.getParentActivityDefinition()).getParentActivityDefinition();
+			} else {
+				parent = this.getParentActivityDefinition();
+			}
+			
+			final ChildActivityDefinition dummy = new ChildActivityDefinition(this);
+			dummy.buildInjectedParams(cPropValue);
+			parent.setInjectedParams(dummy.getInjectedParams());
+			
+			String loadRowid = null;
+			switch (getType()) {
+				case SEARCH:
+					deferred.add(() -> parent.processResponse(dummy.getInjectedParams()));
+					break;
+				case LOADDATA:
+					loadRowid = dummy.returnContractIdentifier(dummy.getContract());
+				case LOADACTIVITYDEF:
+					final LoadDataRequest loadDataRequest = loadDataRequest(loadRowid);
+					deferred.add(() ->  {
+						AppServerAdapter.getInstance().loadData(parent, loadDataRequest);
+					});
+					break;
+				default:
+					throw new IllegalArgumentException("Invalid ChildActivityDefinition type");
+			}
+		} else {
+			super.processResponseCtrlProps(ctrlPropEntry,
+					responseMessage,
+					deferred,
+					refreshTables,
+					updateTables,
+					buttonClickEventForList);
+		}
+	}
+	
+	protected void buildInjectedParams(String launchContractString) {
+		
+		setInjectedParams(new PresentationMessage());
+		setReturnProperties(null);
+		
+		if (launchContractString.startsWith(VALUE_OF_FUNCTION)) {
+			launchContractString = getValueOf(launchContractString);
+			
+			if (launchContractString == null || launchContractString.isEmpty()) {
+				 NullPointerException ex = new NullPointerException("LaunchContract 'valueOf()' function for \"" + tableField + "\" returned nothing");
+				 ex.fillInStackTrace();
+				 throw ex;
+			}
+		}
+		
+		Pattern pattern = Pattern.compile("(?<=\\[)(?:[^\\[\\]]+|\\[[^\\]]+\\]|)+"); // The last pipe character (3rd last char) determines if empty values are allowed in the square brackets
+		Matcher matcher = pattern.matcher(launchContractString);
+    	
+		while(matcher.find()) {
+    		
+    		String contract = matcher.group();
+    		String contractType;
+    		
+    		if (contract.isEmpty()) {
+    			contractType = launchContractString.substring(0, launchContractString.indexOf("[")).toUpperCase();
+    			launchContractString = launchContractString.substring(launchContractString.indexOf("]") + 1);
+    		}else {
+    			contractType = launchContractString.substring(0, launchContractString.indexOf(contract) - 1).toUpperCase();
+    			launchContractString = launchContractString.replace(launchContractString.substring(0, launchContractString.indexOf(contract) + contract.length() + 1), "");
+    			contract = resolveCriteriaString(contract);
+    		}
+    		
+    		String searchTable = null;
+			switch (LaunchContractType.valueOf(contractType)) {
+				case RETURN:
+					setReturnProperties(contract);
+					break;
+				case ADVSEARCH:
+					searchTable = "advSearch";
+				case SEARCH:
+					setType(LaunchContractType.SEARCH);
+					if (searchTable == null) {
+						searchTable = "search";
+					}
+					activityCtrlProps(searchTable, contract);
+					break;
+				case LOADACTIVITYDEF:
+					setType(LaunchContractType.LOADACTIVITYDEF);
+					buildLaunchContract(contract);
+					break;
+				case LOADDATA:
+					setType(LaunchContractType.LOADDATA);
+					buildLaunchContract(contract);
+					break;
+				default: 
+					throw new IllegalArgumentException("Unhandled launch contract type");
+			}
+    	}
+		
+		if (!launchContractString.isEmpty()) {
+			throw new StringIndexOutOfBoundsException(
+					"Launch contract was incorrectly consumed for <" + tableField + ">.");
+		}
+	}
+	
+	public String returnContractIdentifier(String contract) {
+		String identifier = null; 
+		for (String entry: contract.split("\\,")) {
+			entry = entry.trim();
+			if (entry.split("\\=").length == 1) {
+				if (entry.split("\\.").length >= 2) {
+					Object value = findParentActivityValue(entry);
+					if (value == null) {
+						identifier = "";
+					}else{
+						identifier = String.valueOf(value);
+					}
+				} else {
+					identifier = entry;
+				}
+			}
+		}
+		return identifier;
+	}
+	
 	/**
 	 * <p>
 	 * Creates a <code>LoadActivityRequest</code> and a <code>Request</code>
@@ -375,6 +521,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		
 		String tableField = table + "." + field;
 		setTableField(tableField);
+		setInjectedParams(new PresentationMessage());
 		setReturnProperties(null);
 		
 		final String launchActivity;
@@ -391,121 +538,47 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		
 		if (launchContractString != null && !launchContractString.isEmpty()) {
 			
-			if (launchContractString.startsWith(VALUE_OF_FUNCTION)) {
-				launchContractString = getValueOf(launchContractString);
-				
-				if (launchContractString == null || launchContractString.isEmpty()) {
-					 NullPointerException ex = new NullPointerException("LaunchContract 'valueOf()' function for \"" + tableField + "\" returned nothing");
-					 ex.fillInStackTrace();
-					 throw ex;
-				}
+			buildInjectedParams(launchContractString);
+			
+			if (getReturnProperties() != null) {
+				subActivityRequest.setParam("returnCriteria", contract);
 			}
 			
-			Pattern pattern = Pattern.compile("(?<=\\[)(?:[^\\[\\]]+|\\[[^\\]]+\\]|)+"); // The last pipe character (3rd last char) determines if empty values are allowed in the square brackets
-			Matcher matcher = pattern.matcher(launchContractString);
-	    	
-			while(matcher.find()) {
-	    		
-	    		String contract = matcher.group();
-	    		String contractType;
-	    		
-	    		if (contract.isEmpty()) {
-	    			contractType = launchContractString.substring(0, launchContractString.indexOf("[")).toUpperCase();
-	    			launchContractString = launchContractString.substring(launchContractString.indexOf("]") + 1);
-	    		}else {
-	    			contractType = launchContractString.substring(0, launchContractString.indexOf(contract) - 1).toUpperCase();
-	    			launchContractString = launchContractString.replace(launchContractString.substring(0, launchContractString.indexOf(contract) + contract.length() + 1), "");
-	    			contract = resolveCriteriaString(contract);
-	    		}
-	    		
-	    		String searchTable = null;
-				switch (LaunchContractType.valueOf(contractType)) {
-					case RETURN:
-						subActivityRequest.setParam("returnCriteria", contract);
-						setReturnProperties(contract);
-						break;
-					case ADVSEARCH:
-						searchTable = "advSearch";
-					case SEARCH:
-						setType(LaunchContractType.SEARCH);
-						
-						if (searchTable == null) {
-							searchTable = "search";
-						}
-						
-						activityCtrlProps(searchTable ,contract, subActivityRequest);
-						
-						resolveLaunchActivity(subActivityRequest, launchActivity);
-						break;
-					case LOADACTIVITYDEF:
-						setType(LaunchContractType.LOADACTIVITYDEF);
-						
-						String ipService = null; 
-						for (String entry: contract.split("\\,")) {
-							entry = entry.trim();
-							if (entry.split("\\=").length == 1) {
-								if (entry.split("\\.").length >= 2) {
-									Object value = findParentActivityValue(entry);
-									if (value == null) {
-										ipService = "";
-									}else{
-										ipService = String.valueOf(value);
-									}
-								} else {
-									ipService = entry;
-								}
-							}
-						}
-						
-						LoadDataRequest loadActivityDefRequest = loadDataRequest(null);
-						buildLaunchContract(contract, loadActivityDefRequest);
-						buildLaunchContract(contract, subActivityRequest);
-						
-						resolveLaunchActivity(subActivityRequest, launchActivity);
-						setService(ipService);
-						
-						loadActivityDefRequest.setLoadRowid(getLastLoadDataRequest().getLoadRowid());
-						
-						setLastLoadDataRequest(loadActivityDefRequest);
-						break;
-					case LOADDATA:
-						setType(LaunchContractType.LOADDATA);
-						
-						String loadRowid = null;
-						for (String entry: contract.split("\\,")) {
-							entry = entry.trim();
-							if (entry.split("\\=").length == 1) {
-								if (entry.split("\\.").length >= 2) {
-									Object value = findParentActivityValue(entry);
-									if (value == null) {
-										loadRowid = "";
-									}else{
-										loadRowid = String.valueOf(value);
-									}
-								}else {
-									loadRowid = entry;
-								}
-							}
-						}
-						
-						LoadDataRequest loadDataRequest = loadDataRequest(loadRowid);
-						buildLaunchContract(contract, loadDataRequest);
-						buildLaunchContract(contract, subActivityRequest);
-						
-						resolveLaunchActivity(subActivityRequest, launchActivity);
-						
-						setLastLoadDataRequest(loadDataRequest);
-						break;
-					default: 
-						throw new IllegalArgumentException("Unhandled launch contract type");
-				}
-	    	}
+			final String contract = getContract();
 			
-			if (!launchContractString.isEmpty()) {
-				throw new StringIndexOutOfBoundsException(
-						"Launch contract was incorrectly consumed for <" + tableField + ">.");
+			switch (getType()) {
+				case SEARCH:
+					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
+					resolveLaunchActivity(subActivityRequest, launchActivity);
+					break;
+				case LOADACTIVITYDEF:
+					String ipService = returnContractIdentifier(contract);
+					
+					LoadDataRequest loadActivityDefRequest = loadDataRequest(null);
+					loadActivityDefRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
+					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
+					
+					resolveLaunchActivity(subActivityRequest, launchActivity);
+					setService(ipService);
+					
+					loadActivityDefRequest.setLoadRowid(getLastLoadDataRequest().getLoadRowid());
+					
+					setLastLoadDataRequest(loadActivityDefRequest);
+					break;
+				case LOADDATA:
+					String loadRowid = returnContractIdentifier(contract);
+					
+					LoadDataRequest loadDataRequest = loadDataRequest(loadRowid);
+					loadDataRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
+					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
+					
+					resolveLaunchActivity(subActivityRequest, launchActivity);
+					
+					setLastLoadDataRequest(loadDataRequest);
+					break;
+				default: 
+					throw new IllegalArgumentException("Invalid ChildActivityDefinition type");
 			}
-			
 		} else {
 			resolveLaunchActivity(subActivityRequest, launchActivity);
 		}
@@ -746,8 +819,10 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	 * @param launchContract
 	 * @param valRequest
 	 */
-	private void buildLaunchContract(String launchContract, AbstractMessage valRequest) {
+	private void buildLaunchContract(String launchContract) {
 	
+		setContract(launchContract);
+		
 		Object value;
 	
 		if (launchContract != null && launchContract.length() > 0) {
@@ -769,10 +844,10 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 								String fieldList = keyValue[1].substring(keyValue[1].indexOf("(") + 1, keyValue[1].indexOf(")"));
 								String[] fieldArray = fieldList.split("\\|");
 								JsonObject requiredDataTable = getParentActivityDefinition().getRequiredDataTable(table, fieldArray);
-								valRequest.setParam(keyValue[0], requiredDataTable);
+								getInjectedParams().setParam(keyValue[0], requiredDataTable);
 							}else { // single field value required
 								value = findParentActivityValue(keyValue[1]);
-								valRequest.setParam(keyValue[0], value);
+								getInjectedParams().setParam(keyValue[0], value);
 							}
 						}
 					}
@@ -788,7 +863,9 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	 * @param loadActivityRequest
 	 * @return LoadActivityRequest with control properties
 	 */
-	private void activityCtrlProps(String table, String contract, LoadActivityRequest loadActivityRequest) {
+	private void activityCtrlProps(String table, String contract) {
+		
+		setContract(contract);
 		
 		String[] contractKeyStrings = contract.split("\\,");
 		
@@ -796,12 +873,12 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			String[] keyArray = key.split("=");
 			if (keyArray[0].split("\\.").length >= 2) {
 				if (keyArray[1].startsWith("y")) {
-					loadActivityRequest.setCtrlProp(keyArray[0].substring(0, keyArray[0].lastIndexOf(".")), CtrlPropEnum.BUTTONCLICK, "");
+					getInjectedParams().setCtrlProp(keyArray[0].substring(0, keyArray[0].lastIndexOf(".")), CtrlPropEnum.BUTTONCLICK, "");
 				}
 			}else {
 				if (keyArray.length == 2) {
 	    			Object ctrlPropValue = findParentActivityValue(keyArray[1]);
-			    	loadActivityRequest.setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, Objects.toString(ctrlPropValue, ""));
+	    			getInjectedParams().setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, Objects.toString(ctrlPropValue, ""));
 				}
 			}
 		}
