@@ -772,6 +772,10 @@ public class ActivityDefinition {
 		 if (getDataSourceDefinitionMap().get(tableName).getRecordList().isEmpty()) {
 			 return fieldValue;
 		 }
+		 
+         if ("grid".equalsIgnoreCase(fieldName)) {
+        	 fieldName = getDataSourceDefinitionMap().get(tableName).getPrimaryKey();
+         }
          
          Record record = getDataSourceDefinitionMap().get(tableName).getCurrentRecord();
          FieldDefinition fieldDef = getDataSourceDefinitionMap().get(tableName).getFieldDefinition(fieldName);

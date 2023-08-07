@@ -350,14 +350,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		String cPropValue = ctrlPropEntry.getValue();
 		
 		if (CtrlPropEnum.ACTIVITYINJECTPARENT == oCtrlProp) {
-			final ActivityDefinition parent;
+			final ActivityDefinition parent = this.getParentActivityDefinition();
+			final ActivityDefinition getValuesFrom;
 			if ("grandparent".equalsIgnoreCase(cCtrlName)) {
-				parent = ((ChildActivityDefinition) this.getParentActivityDefinition()).getParentActivityDefinition();
+				getValuesFrom = ((ChildActivityDefinition) parent).getParentActivityDefinition();
 			} else {
-				parent = this.getParentActivityDefinition();
+				getValuesFrom = parent;
 			}
 			
-			final ChildActivityDefinition dummy = new ChildActivityDefinition(this);
+			final ChildActivityDefinition dummy = new ChildActivityDefinition(getValuesFrom);
 			dummy.buildInjectedParams(cPropValue);
 			parent.setInjectedParams(dummy.getInjectedParams());
 			
