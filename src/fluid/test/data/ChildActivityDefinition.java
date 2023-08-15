@@ -549,7 +549,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			
 			switch (getType()) {
 				case SEARCH:
-					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
+					subActivityRequest.getCtrlProperties().putAll(getInjectedParams().getCtrlProperties());
 					resolveLaunchActivity(subActivityRequest, launchActivity);
 					break;
 				case LOADACTIVITYDEF:
