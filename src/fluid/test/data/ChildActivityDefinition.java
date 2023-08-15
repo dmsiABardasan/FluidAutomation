@@ -88,7 +88,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	
 	private String contract;
 	private String returnProperties;
-	private String parentActivityName;
 	private String tableField;
 	
 	private boolean disabled = false;
@@ -126,7 +125,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	 */
 	private ChildActivityDefinition(ActivityDefinition parentActivityDef) {
 		super();
-		this.parentActivityName = parentActivityDef.getModel().getActivity();
 		this.parentActivityDef = parentActivityDef;
 	}
 	
@@ -150,7 +148,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	 * @return String value representing the name of the parent Activity
 	 */
 	public String getParentActivityName() {
-		return this.parentActivityName;
+		return this.parentActivityDef.getModel().getActivity();
 	}
 
 	/**
@@ -183,7 +181,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	
 	private void setParentActivityDefinition(ActivityDefinition activityDef) {
 		this.parentActivityDef = activityDef;
-		this.parentActivityName = activityDef.getModel().getActivity();
 	}
 	
 	/**
@@ -562,6 +559,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					resolveLaunchActivity(subActivityRequest, launchActivity);
 					setService(ipService);
 					
+					loadActivityDefRequest.setParam("parentActivity", getParentActivityName());
 					loadActivityDefRequest.setLoadRowid(getLastLoadDataRequest().getLoadRowid());
 					
 					setLastLoadDataRequest(loadActivityDefRequest);
@@ -574,6 +572,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					
 					resolveLaunchActivity(subActivityRequest, launchActivity);
+					
+					loadDataRequest.setParam("parentActivity", getParentActivityName());
 					
 					setLastLoadDataRequest(loadDataRequest);
 					break;
@@ -606,7 +606,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		} 
 		
 		LoadDataRequest loadDataRequest = new LoadDataRequest(loadDataMode);
-		loadDataRequest.setParam("parentActivity", getParentActivityName());
 		loadDataRequest.setLoadRowid(loadRowid);
 		
 		return loadDataRequest;
