@@ -413,6 +413,7 @@ public class ActivityDefinition {
 		   return;
 	   }
 	   
+	  Map<ActivityDefinition, PresentationMessage> propsForAncestors = new HashMap<ActivityDefinition, PresentationMessage>();
       List<UpdateTableDefinition> refreshTables = new ArrayList<UpdateTableDefinition>();
       List<UpdateTableDefinition> updateTables = new ArrayList<UpdateTableDefinition>();
       List<CtrlProp> buttonClickEventForList = new ArrayList<CtrlProp>();
@@ -437,7 +438,7 @@ public class ActivityDefinition {
        }
        
        for (Map.Entry<CtrlPropPair, String> ctrlPropEntry : responseMessage.getCtrlProperties().entrySet()) {
-    	   processResponseCtrlProps(ctrlPropEntry, responseMessage, deferred, refreshTables, updateTables, buttonClickEventForList);
+    	   processResponseCtrlProps(ctrlPropEntry, responseMessage, deferred, refreshTables, updateTables, buttonClickEventForList, propsForAncestors);
        }
        
        for (RunnableThrows runnable : deferred) {
@@ -448,6 +449,10 @@ public class ActivityDefinition {
        updateTables(updateTables);
        
        applyClick(buttonClickEventForList);
+       
+       for (Map.Entry<ActivityDefinition, PresentationMessage> entry : propsForAncestors.entrySet()){
+           entry.getKey().processResponse(entry.getValue());
+       }
    }
    
 	protected void processResponseCtrlProps(Map.Entry<CtrlPropPair, String> ctrlPropEntry,
@@ -455,7 +460,8 @@ public class ActivityDefinition {
 			Set<RunnableThrows> deferred,
 			List<UpdateTableDefinition> refreshTables,
 			List<UpdateTableDefinition> updateTables,
-			List<CtrlProp> buttonClickEventForList) { 
+			List<CtrlProp> buttonClickEventForList,
+			Map<ActivityDefinition, PresentationMessage> propsForAncestors) throws Throwable { 
 	
 		String cCtrlName = ctrlPropEntry.getKey().getName();
 		CtrlPropEnum oCtrlProp = ctrlPropEntry.getKey().getProp();

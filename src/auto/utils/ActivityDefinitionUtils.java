@@ -295,12 +295,26 @@ public final class ActivityDefinitionUtils {
 			
 			boolean runSave = false;
 			if ("button".equals(table)) {
-				for (DataSourceDefinition dsDef : activityDef.getDataSourceDefinitionMap().values()) {
-					ViewDefinition viewDef = dsDef.getViewDefinition();
-					Map<String, Object> fieldViewDef = viewDef.getFieldViewDefinition(field);
-					if (fieldViewDef != null) {
-						runSave = Boolean.parseBoolean(String.valueOf(fieldViewDef.get("activitySaveButton")));
-						break;
+				final String activitySaveButton = "activitySaveButton";
+				final String extraControlButtons = "extraControlButtons";
+				
+				if (activityDef.getModel().getViewDetails().get(extraControlButtons) != null) {
+					JsonArray extras = (JsonArray) activityDef.getModel().getViewDetails().get(extraControlButtons);
+					for (Object object : extras) {
+						JsonObject extra = (JsonObject) object;
+						if (field.equals(extra.get("name")) && Boolean.TRUE.equals(extra.get(activitySaveButton))) {
+							runSave = true;
+							break;
+						}
+					}
+				} else {
+					for (DataSourceDefinition dsDef : activityDef.getDataSourceDefinitionMap().values()) {
+						ViewDefinition viewDef = dsDef.getViewDefinition();
+						Map<String, Object> fieldViewDef = viewDef.getFieldViewDefinition(field);
+						if (fieldViewDef != null) {
+							runSave = Boolean.parseBoolean(String.valueOf(fieldViewDef.get(activitySaveButton)));
+							break;
+						}
 					}
 				}
 			}

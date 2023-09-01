@@ -333,20 +333,94 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			saveResponseToParent(saveDataResponseDeepClone);
 		}
 	}
-	
+
+	private boolean isAncestorProperty(final String ctrlName, final CtrlPropEnum ctrlProp, final String ctrlValue,
+			PresentationMessage responseMsg,
+			Map<ActivityDefinition, PresentationMessage> propsForAncestors) throws Throwable {
+		
+		final String ancestorStr = "fldAncestor-";
+
+		boolean forAncestor = false;
+
+		if (ctrlName.regionMatches(true, 0, ancestorStr, 0, ancestorStr.length())) { // Ignorecase startswith
+
+			int firstSeparatorIndex = ctrlName.length(); // Assume entire string if no separators found.
+			for (int i = ancestorStr.length() - 1; i < ctrlName.length(); i++) {
+				if (ctrlName.charAt(i) == '.') {
+					firstSeparatorIndex = i;
+					break;
+				}
+			}
+
+			String stackIndexStr = ctrlName.substring(ancestorStr.length(), firstSeparatorIndex);
+			int stackIndex;
+			try {
+				stackIndex = Integer.parseInt(stackIndexStr);
+			} catch (NumberFormatException ex) {
+				throw new Throwable("Cannot convert <" + stackIndexStr + "> from ancestor CtrlProp name <" + ctrlName + "> into an integer.");
+			}
+			
+			// stackIndex == 0 is the current presenter, so forAncestor = false
+			ActivityDefinition ancestor = this;
+			for (int i = 0; i < stackIndex; i++) {
+				try {
+					ancestor = ((ChildActivityDefinition) ancestor).getParentActivityDefinition();
+				} catch (ClassCastException ex){
+					throw new Throwable("There was no ancestor with a depth of <" + stackIndex + "> for <" + ctrlName + ">, reached depth of <" + i + ">.");
+				}
+			}
+
+			if (ancestor != this) {
+				forAncestor = true;
+
+				PresentationMessage props = propsForAncestors.get(ancestor);
+				if (props == null) {
+					props = new PresentationMessage();
+					propsForAncestors.put(ancestor, props);
+				}
+				
+				String newName;
+				if (firstSeparatorIndex == ctrlName.length()) {
+					// Name only contained an ancestor reference
+					newName = "";
+				} else {
+					// Get Everything after the first separator
+					newName = ctrlName.substring(firstSeparatorIndex + 1, ctrlName.length());
+				}
+				
+				props.setCtrlProp(newName, ctrlProp, ctrlValue);
+				
+				switch (ctrlProp) {
+					case UPDATETABLE:
+					case REFRESHTABLE:
+						// Get the referenced object in the response
+						props.setParam(ctrlValue, responseMsg.getParamAsObject(ctrlValue));
+						break;
+					default:
+						// Do nothing
+						break;
+				}
+			}
+		}
+		return forAncestor;
+	}
+
 	@Override
 	protected void processResponseCtrlProps(Entry<CtrlPropPair, String> ctrlPropEntry,
 			PresentationMessage responseMessage,
 			Set<RunnableThrows> deferred,
 			List<UpdateTableDefinition> refreshTables,
 			List<UpdateTableDefinition> updateTables,
-			List<CtrlProp> buttonClickEventForList) {
+			List<CtrlProp> buttonClickEventForList,
+			Map<ActivityDefinition, PresentationMessage> propsForAncestors) throws Throwable {
 		
 		String cCtrlName = ctrlPropEntry.getKey().getName();
 		CtrlPropEnum oCtrlProp = ctrlPropEntry.getKey().getProp();
 		String cPropValue = ctrlPropEntry.getValue();
 		
-		if (CtrlPropEnum.ACTIVITYINJECTPARENT == oCtrlProp) {
+		if (isAncestorProperty(cCtrlName, oCtrlProp, cPropValue, responseMessage, propsForAncestors)) {
+			return;
+		} else if (CtrlPropEnum.ACTIVITYINJECTPARENT == oCtrlProp) {
 			final ActivityDefinition parent = this.getParentActivityDefinition();
 			final ActivityDefinition getValuesFrom;
 			if ("grandparent".equalsIgnoreCase(cCtrlName)) {
@@ -381,7 +455,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					deferred,
 					refreshTables,
 					updateTables,
-					buttonClickEventForList);
+					buttonClickEventForList,
+					propsForAncestors);
 		}
 	}
 	
