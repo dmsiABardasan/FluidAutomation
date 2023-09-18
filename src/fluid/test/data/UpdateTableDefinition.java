@@ -1,12 +1,11 @@
 package fluid.test.data;
 
-import java.util.ArrayList;
 import java.util.List;
 
 public class UpdateTableDefinition {
 
    private String tableName;
-   private List<Record> recordList = new ArrayList<Record>();
+   private List<Record> recordList;
    
    public UpdateTableDefinition(String tableName, List<Record> recordList) {
       super();

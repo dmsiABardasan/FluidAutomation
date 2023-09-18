@@ -879,11 +879,12 @@ public class ActivityDefinition {
              DataSourceDefinition dataSourceDefinition = dataSourceDefinitionMap.get(tableName);
              
              List<Record> updateRecordList = updateTableDefinition.getRecordList();
-             for (Record record : updateRecordList) {
-                dataSourceDefinition.updateData(record);
+             if (updateRecordList != null) {
+                 for (Record record : updateRecordList) {
+                	 dataSourceDefinition.updateData(record);
+                 }
              }
          }
-         
       }      
    }
 
