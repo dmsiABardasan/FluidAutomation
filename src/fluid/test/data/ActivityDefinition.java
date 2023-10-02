@@ -350,15 +350,11 @@ public class ActivityDefinition {
 	}
    
    public void processGetResultsResponse(GetResultsResponse getResultsResponse) throws Throwable {
-      if (getResultsResponse.hasStopErrors()) {
-         Throwable e = new Throwable("Error in GetResultsResponse: " + getResultsResponse.getErrorMsg());
-         e.fillInStackTrace();
-         throw e;
+      if (!getResultsResponse.hasStopErrors()) {
+    	  getResultsResponse.populateRecordList(getResultsDataSourceDefinition());
+
+          processResponse(getResultsResponse);
       }
-
-	  getResultsResponse.populateRecordList(getResultsDataSourceDefinition());
-
-      processResponse(getResultsResponse);
    }
 
    public void processLoadDataResponse(LoadDataResponse loadDataResponse) throws Throwable {
