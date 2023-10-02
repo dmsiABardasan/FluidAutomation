@@ -47,11 +47,17 @@ public interface ViewGenSearch extends View.ViewSearch {
 	 * @return Parameterized GetResultsRequest
 	 */
 	public static GetResultsRequest searchRequest(ActivityDefinition activityDef) {
-		GetResultsRequest getResultsRequest = new GetResultsRequest();
-		View.parameterizeRequest(activityDef.getGenSearchDataSourceDefinition().getCurrentRecord(), getResultsRequest);
-		//System.out.println("GenSearch GetResultsRequest: " + getResultsRequest.serializeMessage());
-		//GetResultsResponse getResultsResponse = ActivityDefinitionUtils.getResults(activityDef, getResultsRequest);
-		//System.out.println("GenSearch GetResultsResponse: " + getResultsResponse.serializeMessage());
+		final GetResultsRequest getResultsRequest;
+		if (activityDef.getGenSearchDataSourceDefinition() != null) {
+			getResultsRequest = new GetResultsRequest();
+			View.parameterizeRequest(activityDef.getGenSearchDataSourceDefinition().getCurrentRecord(), getResultsRequest);
+			//System.out.println("GenSearch GetResultsRequest: " + getResultsRequest.serializeMessage());
+			//GetResultsResponse getResultsResponse = ActivityDefinitionUtils.getResults(activityDef, getResultsRequest);
+			//System.out.println("GenSearch GetResultsResponse: " + getResultsResponse.serializeMessage());
+		} else {
+			getResultsRequest = null;
+		}
+		
 		return getResultsRequest;
 	}
 }

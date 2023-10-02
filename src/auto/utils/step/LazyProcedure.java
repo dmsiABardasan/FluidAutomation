@@ -24,6 +24,7 @@ public class LazyProcedure{
 	private boolean haltOnChildActivity = false;
 	private boolean clickCrudButtons = true;
 	private boolean clearSteps = false;
+	private boolean printSteps = false;
 	public boolean mlDebugTrace;
 	
 	public LazyProcedure(){}
@@ -81,8 +82,20 @@ public class LazyProcedure{
 	
 	public void executeSteps(ActivityDefinition validationActivity, List<Step> steps) {
 		if (getChildList().isEmpty()) {
+			
+			final int initialSize = getStepList().size();
+			
 			getStepList().addAll(steps);
 			executeProcedure(validationActivity);
+			
+			if (printSteps) {
+				List<Step> newSteps = getStepList().subList(initialSize, getStepList().size());
+				String[] stepStringArray = Step.prettyPrintProcedure(newSteps);
+				for (int i = 0 ; i < stepStringArray.length ; i++) {
+					final String stepString = stepStringArray[i];
+					System.out.println((initialSize + i) + stepString);
+				}
+			}
 			if (clearSteps) getStepList().clear();
 		}else {
 			fail("Unhandled activity, explicity remove them from the list or check for unexpected popups.\n" + getChildList().toString());
@@ -171,16 +184,18 @@ public class LazyProcedure{
 	public String prettyPrintProcedureTest(String dataTestID) {
 		StringBuilder stb = new StringBuilder();
 		stb.append("\nTest: " + dataTestID);
-		for (String stepString : Step.prettyPrintProcedure(getStepList())) {
-			stb.append("\r\n" + stepString);
-		}
-		return stb.toString();
+		return prettyPrintProcedure(stb);
 	}
 	
 	public String prettyPrintProcedure() {
-		StringBuilder stb = new StringBuilder();
-		for (String stepString : Step.prettyPrintProcedure(getStepList())) {
-			stb.append("\r\n" + stepString);
+		return prettyPrintProcedure(new StringBuilder());
+	}
+	
+	private String prettyPrintProcedure(StringBuilder stb) {
+		String[] stepStringArray = Step.prettyPrintProcedure(getStepList());
+		for (int i = 0 ; i < stepStringArray.length ; i++) {
+			final String stepString = stepStringArray[i];
+			stb.append("\r\n" + (1 + i) + stepString);
 		}
 		return stb.toString();
 	}

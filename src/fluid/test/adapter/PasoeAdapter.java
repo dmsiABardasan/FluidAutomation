@@ -42,8 +42,8 @@ public class PasoeAdapter extends AppServerAdapter{
 		cookieJar.saveFromResponseFilters().add(CustomCookieJar.filterHttpUrlStartsWith(host));
 		try {
 			rest.post(MediaType.APPLICATION, url, 
-					"j_username="+ URLEncoder.encode(user, StandardCharsets.UTF_8)+"&" + 
-					"j_password="+ URLEncoder.encode(password, StandardCharsets.UTF_8)+"&" + 
+					"j_username="+ URLEncoder.encode(user, StandardCharsets.UTF_8.name())+"&" + 
+					"j_password="+ URLEncoder.encode(password, StandardCharsets.UTF_8.name())+"&" + 
 					"SubmitButton=Submit", 
 					Collections.singletonMap("Cookie", "FID="+extra));
 			for (Cookie cookie : cookieJar.getCookies()) {

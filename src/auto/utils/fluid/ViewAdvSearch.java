@@ -47,11 +47,17 @@ public interface ViewAdvSearch extends View.ViewSearch {
 	 * @return Parameterized GetResultsRequest
 	 */
 	public static GetResultsRequest searchRequest(ActivityDefinition activityDef) {
-		GetResultsRequest getResultsRequest = new GetResultsRequest();
-		View.parameterizeRequest(activityDef.getAdvSearchDataSourceDefinition().getCurrentRecord(), getResultsRequest);
-		//System.out.println("AdvSearch GetResultsRequest: " + getResultsRequest.serializeMessage());
-		//GetResultsResponse getResultsResponse = ActivityDefinitionUtils.getResults(activityDef, getResultsRequest);
-		//System.out.println("AdvSearch GetResultsResponse: " + getResultsResponse.serializeMessage());
+		final GetResultsRequest getResultsRequest;
+		if (activityDef.getAdvSearchDataSourceDefinition() != null) {
+			getResultsRequest = new GetResultsRequest();
+			View.parameterizeRequest(activityDef.getAdvSearchDataSourceDefinition().getCurrentRecord(), getResultsRequest);
+			//System.out.println("AdvSearch GetResultsRequest: " + getResultsRequest.serializeMessage());
+			//GetResultsResponse getResultsResponse = ActivityDefinitionUtils.getResults(activityDef, getResultsRequest);
+			//System.out.println("AdvSearch GetResultsResponse: " + getResultsResponse.serializeMessage());
+		} else {
+			getResultsRequest = null;
+		}
+		
 		return getResultsRequest;
 	}
 }

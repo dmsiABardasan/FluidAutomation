@@ -337,6 +337,11 @@ public class ActivityDefinition {
    }
 
 	public LoadDataResponse loadCurrentResultRecord() throws Throwable {
+		
+		if (getResultsDataSourceDefinition().getRecordList().isEmpty()) {
+			throw new IllegalStateException("Cannot load current result record, there is no records in the \"result\" DataSourceDefinition.");
+		}
+		
 		LoadDataRequest loadDataRequest = new LoadDataRequest(LoadDataModeEnum.EDIT);
 		loadDataRequest.setLoadRowid(getResultsDataSourceDefinition().getCurrentRecord()
 				.getFieldValueAsString(getResultsDataSourceDefinition().getPrimaryKey()));
@@ -345,11 +350,11 @@ public class ActivityDefinition {
 	}
    
    public void processGetResultsResponse(GetResultsResponse getResultsResponse) throws Throwable {
-/*      if (getResultsResponse.hasStopErrors()) {
+      if (getResultsResponse.hasStopErrors()) {
          Throwable e = new Throwable("Error in GetResultsResponse: " + getResultsResponse.getErrorMsg());
          e.fillInStackTrace();
          throw e;
-      }*/
+      }
 
 	  getResultsResponse.populateRecordList(getResultsDataSourceDefinition());
 
@@ -778,11 +783,11 @@ public class ActivityDefinition {
 		 if (getDataSourceDefinitionMap().get(tableName).getRecordList().isEmpty()) {
 			 return fieldValue;
 		 }
-		 
+         
          if ("grid".equalsIgnoreCase(fieldName)) {
         	 fieldName = getDataSourceDefinitionMap().get(tableName).getPrimaryKey();
          }
-         
+		 
          Record record = getDataSourceDefinitionMap().get(tableName).getCurrentRecord();
          FieldDefinition fieldDef = getDataSourceDefinitionMap().get(tableName).getFieldDefinition(fieldName);
          
@@ -881,7 +886,7 @@ public class ActivityDefinition {
              List<Record> updateRecordList = updateTableDefinition.getRecordList();
              if (updateRecordList != null) {
                  for (Record record : updateRecordList) {
-                	 dataSourceDefinition.updateData(record);
+                     dataSourceDefinition.updateData(record);
                  }
              }
          }

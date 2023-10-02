@@ -24,6 +24,7 @@ import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ActivityDefinitionResponseCascader;
 import fluid.test.data.ChildActivityDefinition;
 import fluid.test.data.DataSourceDefinition;
+import fluid.test.data.ViewDefinition;
 import fluid.test.message.CtrlPropEnum;
 import fluid.test.message.CtrlPropPair;
 import fluid.test.message.LoadActivityRequest;
@@ -31,7 +32,6 @@ import fluid.test.message.LoadDataModeEnum;
 import fluid.test.message.LoadDataRequest;
 import fluid.test.message.LoadDataResponse;
 import fluid.test.message.PresentationMessage;
-
 
 /**
  * <p>
@@ -236,13 +236,6 @@ public class Step {
 	private void setContractType(CtrlPropEnum contractType) {
 		this.contractType = contractType;
 	}
-	
-	/**
-	 * @param subSteps List of Steps that was cascaded from <code>this</code> step
-	 */
-	private void setSubSteps(List<Step> subSteps) {
-		this.subSteps = Collections.unmodifiableList(subSteps);
-	}
 
 	/**
 	 * @return Boolean that signifies that this Step is to attempt generation of a
@@ -354,9 +347,7 @@ public class Step {
 	}
 	
 	/**
-	 * @return Unmodifiable List of Steps that cascaded from <code>this</code> Step,
-	 *         or null if <code>this</code> Step is not {@link #isComplete()
-	 *         complete}
+	 * @return List of Steps that cascaded from <code>this</code> Step
 	 */
 	public List<Step> getSubSteps() {
 		return this.subSteps;
@@ -416,12 +407,24 @@ public class Step {
 					}
 				}
 				if (!exists) {
-					strBldr.append("Button <" + getTableField());
+					// Perhaps an activitySaveButton
+					for (DataSourceDefinition dsDef : activityDef.getDataSourceDefinitionMap().values()) {
+						ViewDefinition viewDef = dsDef.getViewDefinition();
+						Map<String, Object> fieldViewDef = viewDef.getFieldViewDefinition(getField());
+						if (fieldViewDef != null) {
+							exists = true;
+							break;
+						}
+					}
+					
+					if (!exists) {
+						strBldr.append("Button <" + getTableField());
+					}
 				}
 			}else {
 				exists = true;
 			}
-		}else if (!activityDef.getDataSourceDefinitionMap().containsKey(getTable())) {
+		} else if (!activityDef.getDataSourceDefinitionMap().containsKey(getTable())) {
 			strBldr.append("Table <" + getTable());
 		} else if ((!activityDef.getDataSourceDefinitionMap().get(getTable()).getFieldDefinitionMap().containsKey(getField()) 
 				&& !(activityDef.getDataSourceDefinitionMap().get(getTable()).getCurrentRecord() != null && activityDef
@@ -559,50 +562,9 @@ public class Step {
 					assertFalse("Activity is closed.", activityDefRes.isClosed());
 					
 					if (!step.isLaunch()) {
-					
-						step.setContractType(CtrlPropEnum.VALIDATIONCONTRACT);
-						
-						PresentationMessage oResponse;
-						if (CrudButtonEnum.isCrudButton(step.getTableField())) {
-							CrudButtonEnum crudButton = CrudButtonEnum.getCrudButton(step.getTableField());
-							switch (crudButton) {
-								case USE:
-									//Handles selecting something in the dashboard and it exploding into many activities
-									if (ActivityTypeEnum.DASHBOARD == ActivityTypeEnum.getActivityType(activityDefRes.getModel().getActivityType())) {
-										
-										final String maintRowid;
-										if (activityDefRes.getResultsDataSourceDefinition() != null) {
-											if (activityDefRes.getResultsDataSourceDefinition().getRecordList().isEmpty()) {
-												fail("Nothing to use! (Use CrudButtonEnum.FIND or a delay may be required for server side process to complete)");
-											}
-											step.setRecordIndex(activityDefRes.getResultsDataSourceDefinition().getCurrentRow());
-											
-											DataSourceDefinition results = activityDefRes.getResultsDataSourceDefinition();
-											maintRowid = results.getCurrentRecord().getFieldValueAsString(results.getPrimaryKey());
-											
-										} else {
-											maintRowid = "dummy";
-										}
-										
-										childActivityDefList.addAll(step.dashboardHandling(
-												activityDefRes,
-												procedure,
-												maintRowid,
-												haltOnChildActivity,
-												clickCrudButtons));
-										oResponse = new PresentationMessage();
-										break;
-									}
-									//No break;
-								default:
-									oResponse = CrudButtonEnum.crudButtonClick(activityDefRes, crudButton);
-									break;
-							}
-						}else {
-							oResponse = ActivityDefinitionUtils.validateField(activityDefRes, step.getTable(), step.getField(), false);
-						}
-						validationResponseHandling(activityDefRes, step, oResponse);
-					}else {
+						step.validationHandling(activityDefRes, childActivityDefList, procedure, haltOnChildActivity, clickCrudButtons);
+
+					} else {
 						activityDefRes = step.childHandling(childActivityDefList, activityDefRes, procedure, haltOnChildActivity, clickCrudButtons);
 					}
 
@@ -642,16 +604,17 @@ public class Step {
 						}
 						asyncValidations.clear();
 						procedure.addAll(1 + i, asyncSteps);
+						step.subSteps.addAll(asyncSteps);
 					}
 					
 				} catch (AssertionError ass) {
-					stepTrace(step, procedure, ass, i);
+					stepTrace(step, procedure, ass);
 				}
 				
 				try {
 					childActivityDefList.addAll(step.cascade(activityDefRes, procedure, haltOnChildActivity, clickCrudButtons));
 				} catch (AssertionError ass) {
-					stepTrace(step, procedure, ass, i);
+					stepTrace(step, procedure, ass);
 				}
 				
 				step.setChildren(childActivityDefList);
@@ -671,8 +634,66 @@ public class Step {
 		}
 		return childActivityDefList;
 	}
+	
+	private void validationHandling(ActivityDefinitionResponseCascader activityDefRes,
+			List<ChildActivityDefinition> childActivityDefList, List<Step> procedure,
+			boolean haltOnChildActivity, boolean clickCrudButtons) {
+		
+		setContractType(CtrlPropEnum.VALIDATIONCONTRACT);
+		
+		PresentationMessage oResponse = null;
+		try {
+			if (CrudButtonEnum.isCrudButton(getTableField())) {
+				CrudButtonEnum crudButton = CrudButtonEnum.getCrudButton(getTableField());
+				switch (crudButton) {
+					case USE:
+						//Handles selecting something in the dashboard and it exploding into many activities
+						if (ActivityTypeEnum.DASHBOARD == ActivityTypeEnum.getActivityType(activityDefRes.getModel().getActivityType())) {
+							
+							final String maintRowid;
+							if (activityDefRes.getResultsDataSourceDefinition() != null) {
+								if (activityDefRes.getResultsDataSourceDefinition().getRecordList().isEmpty()) {
+									fail("Nothing to use! (Use CrudButtonEnum.FIND or a delay may be required for server side process to complete)");
+								}
+								setRecordIndex(activityDefRes.getResultsDataSourceDefinition().getCurrentRow());
+								
+								DataSourceDefinition results = activityDefRes.getResultsDataSourceDefinition();
+								maintRowid = results.getCurrentRecord().getFieldValueAsString(results.getPrimaryKey());
+								
+							} else {
+								maintRowid = "dummy";
+							}
+							
+							childActivityDefList.addAll(dashboardHandling(
+									activityDefRes,
+									procedure,
+									maintRowid,
+									haltOnChildActivity,
+									clickCrudButtons));
+							break;
+						}
+						//No break;
+					default:
+						oResponse = CrudButtonEnum.crudButtonClick(activityDefRes, crudButton);
+						break;
+				}
+			} else {
+				oResponse = ActivityDefinitionUtils.validateField(activityDefRes, getTable(), getField(), false);
+			}
+		} catch (Throwable ex) {
+/*			System.err.println("WARNING - Error attempting to create request for activity" + getCalledActivityName() + "> field <" + getTableField() + "> in procedure at Step <"
+					+ (isAuto() ? "(AUTO)>" : (1 + procedure.indexOf(this)) + ">") + ":\r\n" + ex.getMessage());*/
+			getLabel().add("WARNING - Error attempting to create request: \"" + ex.getMessage() + "\"");
+		}
+		if (oResponse != null) {
+			validationResponseHandling(activityDefRes, this, oResponse);
+		} else {
+			setIsComplete(true);
+		}
+	}
+	
 
-	private static void stepTrace(final Step step, final List<Step> procedure, final AssertionError ass, final Integer i) {
+	private static void stepTrace(final Step step, final List<Step> procedure, final AssertionError ass) {
 		if (mlDebugTrace) {
 			step.toString();
 		}
@@ -687,7 +708,7 @@ public class Step {
 			}
 		}*/
 		fail("Error from validation for activity <" + step.getCalledActivityName() + "> field <" + step.getTableField() + "> in procedure at Step <"
-				+ (step.isAuto() ? "(AUTO)>" : (1 + i) + ">") + ":\r\n" + ass.getMessage());
+				+ (step.isAuto() ? "(AUTO)>" : (1 + procedure.indexOf(step)) + ">") + ":\r\n" + ass.getMessage());
 	}
 	
 	/**
@@ -820,9 +841,9 @@ public class Step {
 			childActivityDef.getNextTableFields().clear();
 			
 			childActivityDefList.addAll(executeProcedure(childActivityDef, dashSteps, haltOnChildActivity, clickCrudButtons));
-			setSubSteps(dashSteps);
 			
 			procedure.addAll(1 + procedure.indexOf(this), dashSteps);
+			this.subSteps.addAll(dashSteps);
 		}
 		
 		return childActivityDefList;
@@ -886,7 +907,7 @@ public class Step {
 		subProcedure.addAll(launch);
 		
 		procedure.addAll(1 + procedure.indexOf(this), subProcedure); 
-		setSubSteps(subProcedure);
+		this.subSteps.addAll(subProcedure);
 
 		return childActivityDefList;
 	}
@@ -996,7 +1017,7 @@ public class Step {
 	public static String[] prettyPrintProcedure(List<Step> procedure) {
 		String[] foo = new String[procedure.size()];
 		for (int i = 0 ; i < procedure.size() ; i++) {
-			foo[i] = (1 + i) + procedure.get(i).toString();
+			foo[i] = procedure.get(i).toString();
 		}
 		return ApiUtils.prettyPrintStrings(foo, "\t");
 	}

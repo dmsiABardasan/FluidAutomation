@@ -4,11 +4,12 @@ import static org.junit.Assert.fail;
 
 import auto.utils.ActivityDefinitionUtils;
 import fluid.test.data.ActivityDefinition;
+import fluid.test.message.GetResultsRequest;
 import fluid.test.message.LoadDataModeEnum;
 import fluid.test.message.PresentationMessage;
 
 /**
- * Implementation of Fluid's baked in buttons that are in each activity. 
+ * Implementation of Fluids baked in buttons that are in each activity. 
  * 
  * @author vercin
  */
@@ -72,7 +73,7 @@ public enum CrudButtonEnum {
 			System.out.println("Crud button <" + crudButton.toString() + "> clicked");
 		}
 		
-		PresentationMessage oResponse = null;
+		final PresentationMessage oResponse;
 		
 		switch (crudButton) {
 			case NEW:
@@ -97,7 +98,9 @@ public enum CrudButtonEnum {
 					String loadRowid = activityDef.getResultsDataSourceDefinition().getCurrentRecord().getFieldValueAsString(activityDef.getResultsDataSourceDefinition().getPrimaryKey());
 					oResponse = ActivityDefinitionUtils.loadData(activityDef, LoadDataModeEnum.COPY, loadRowid);
 				} else {
-					fail("At least one record needs to be in the search results before it can be copied.");
+					final String reason = "At least one record needs to be in the search results before it can be copied.";
+					fail(reason);
+					throw new IllegalArgumentException(reason);
 				}
 				break;
 			case SAVE:
@@ -105,22 +108,36 @@ public enum CrudButtonEnum {
 				oResponse = ActivityDefinitionUtils.saveData(activityDef, false, false);
 				break;
 			case FIND:
-				oResponse = ActivityDefinitionUtils.getResults(activityDef, ViewGenSearch.searchRequest(activityDef));
+				GetResultsRequest genGetResults;
+				if ((genGetResults = ViewGenSearch.searchRequest(activityDef)) != null) { 
+					oResponse = ActivityDefinitionUtils.getResults(activityDef, genGetResults);
+				} else {
+					final String reason = "Cannot use \"find\", as the search DataSourceDefinition does not exist.";
+					fail(reason);
+					throw new IllegalArgumentException(reason);
+				}
 				break;
 			case ADV_FIND:
-				oResponse = ActivityDefinitionUtils.getResults(activityDef, ViewAdvSearch.searchRequest(activityDef));
+				GetResultsRequest advGetResults;
+				if ((advGetResults = ViewAdvSearch.searchRequest(activityDef)) != null) {
+					oResponse = ActivityDefinitionUtils.getResults(activityDef, advGetResults);
+				} else {
+					final String reason = "Cannot use \"advFind\", as the advSearch DataSourceDefinition does not exist.";
+					fail(reason);
+					throw new IllegalArgumentException(reason);
+				}
 				break;
 			case USE:
 				try {
 					oResponse = activityDef.loadCurrentResultRecord();
 				} catch (Throwable ex) {
-					ex.printStackTrace();
 					fail(ex.getMessage());
+					throw new IllegalArgumentException(ex);
 				}
 				break;
 			case CLOSE:
 				activityDef.setClosed(true);
-				oResponse = new PresentationMessage();
+				oResponse = null;
 				break;
 			case REFRESH:
 				oResponse = ActivityDefinitionUtils.loadData(activityDef, activityDef.getLastLoadDataRequest(), activityDef.getLastLoadDataRequest().getLoadRowid());
