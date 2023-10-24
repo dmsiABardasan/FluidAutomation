@@ -78,6 +78,7 @@ public class PasoeAdapter extends AppServerAdapter{
 			e.fillInStackTrace();
 			throw e;
 		}
+		RestAdapter.getInstance().getCookieJar().getCookies().clear();
 		setContextId("");
 	}
 	@Override
