@@ -643,6 +643,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					String loadRowid = returnContractIdentifier(contract);
 					
 					LoadDataRequest loadDataRequest = loadDataRequest(loadRowid);
+					subActivityRequest.setCtrlProp("dummy", CtrlPropEnum.LOADDATA, loadRowid);
 					loadDataRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					
