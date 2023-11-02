@@ -398,7 +398,7 @@ public class Step {
 		boolean exists = false;
 		
 		StringBuilder strBldr = new StringBuilder();
-		if ("button".equalsIgnoreCase(getTable()) ){
+		if ("button".equalsIgnoreCase(getTable()) || "grid".equalsIgnoreCase(getField()) ){
 			if (!CrudButtonEnum.isCrudButton(getTableField())) {
 				for (CtrlPropPair ctrlProp: activityDef.getModel().getCtrlProperties().keySet()) {
 					if (getTableField().equals(ctrlProp.getName())) {
