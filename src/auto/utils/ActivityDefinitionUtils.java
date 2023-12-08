@@ -17,7 +17,6 @@ import auto.utils.fluid.ActivityTypeEnum;
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ChildActivityDefinition;
-import fluid.test.data.ChildActivityDefinition.LaunchContractType;
 import fluid.test.data.DataSourceDefinition;
 import fluid.test.data.Record;
 import fluid.test.data.ViewDefinition;
@@ -571,56 +570,6 @@ public final class ActivityDefinitionUtils {
 		return activityTaskResponse;
 	}
 
-	/**
-	 * Use a new ChildActivityDefinition and supply the table and field for that launch contract
-	 * 
-	 * @param childActivityDef
-	 * @param table
-	 * @param field
-	 * @return Response of the ChildTypeRequest
-	 */
-	public static void loadChildActivity(ChildActivityDefinition childActivityDef, String table, String field) {
-		childActivityDef.createLaunchContract(table, field);
-		
-		loadChildActivity(childActivityDef);
-	}
-	
-	/**
-	 * Use a ChildActivityDefinition that has already been supplied the table and field for the desired launch contract
-	 * 
-	 * @param childActivityDef
-	 * @return Response of the ChildTypeRequest
-	 */
-	public static void loadChildActivity(ChildActivityDefinition childActivityDef) {
-		try {
-			AppServerAdapter.getInstance().loadActivityDef(childActivityDef, childActivityDef.getLastLoadActivityRequest());
-		} catch (Throwable e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	
-		PresentationMessage oResponse = null;
-		try {
-			if (childActivityDef.getType() == LaunchContractType.LOADDATA){
-				oResponse = AppServerAdapter.getInstance().loadData(childActivityDef, childActivityDef.getLastLoadDataRequest());
-			}
-		} catch (Throwable e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		
-		try {
-			childActivityDef.nextTableFieldCascadeDive();
-		} catch (Throwable ex) {
-			ex.printStackTrace();
-			fail("Validation error while cascading buttons in Child LoadDataResponse ");
-		}
-		
-		if(mlDebugTrace) {
-			System.out.println("childTypeResponse: " + oResponse.serializeMessage());
-		}
-	}
-	
 	/**
 	 * Select a record that matches the specified primaryKey values for a
 	 * getResultsDataSourceDefinition in an ActivityDefinition.

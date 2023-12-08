@@ -1,5 +1,6 @@
 package fluid.test.data;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +90,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	private String contract;
 	private String returnProperties;
 	private String tableField;
+	
+	private String passThroughName;
 	
 	private boolean disabled = false;
 	
@@ -657,6 +660,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					throw new IllegalArgumentException("Invalid ChildActivityDefinition type");
 			}
 		} else {
+			setType(LaunchContractType.LOADDATA);
 			resolveLaunchActivity(subActivityRequest, launchActivity);
 		}
 		
@@ -722,7 +726,34 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	@SuppressWarnings("unchecked")
 	public String resolveService(String tabId, String fluidService) {
 		if (fluidService.startsWith(PASS_THROUGH_FUNCTION)) {
-			String title = fluidService.substring(PASS_THROUGH_FUNCTION.length(), fluidService.lastIndexOf(']')).replaceAll("_", " ");
+			
+			// The title passThrough can contain multiple activity references (Separated by a semi-colon),
+			// we need to catch those others by creating a new child instances with those specific extra names (passThroughName)
+			final String title; 
+			if (this.passThroughName != null && !this.passThroughName.isEmpty()) { // Only called if explicitly specified by the 'else' block
+				title = this.passThroughName;
+			} else {
+				String titles = fluidService.substring(PASS_THROUGH_FUNCTION.length(), fluidService.lastIndexOf(']')).replaceAll("_", " ");
+				String[] titlesArr = titles.split(";");
+				
+				title = titlesArr[0]; // 'this' current ChildActivityDefinition will handle the first title (Most typically only one entry)
+				
+				String[] tableField = this.tableField.split("\\.");
+				// For potential other entries, create new ChildActivityDefinition and specify name, build their contracts as is currently.
+				Set<ChildActivityDefinition> others = new HashSet<ChildActivityDefinition>();
+				for (int i = 1 ; i < titlesArr.length ; i++) { // Start after index i, if it exists
+					
+					ChildActivityDefinition childActivityDef = newInstance(this.parentActivityDef);
+					childActivityDef.passThroughName = titlesArr[i];
+					childActivityDef.createLaunchContract(tableField[0], tableField[1]);
+					
+					others.add(childActivityDef);
+				}
+				
+				// After contract has been made, load them
+				others.forEach((other) -> loadChildActivity(other));
+			}
+			
 			
 			Map<String, Object> viewDetails = resolveTarget(tabId).getModel().getViewDetails(); 
 			List<Object> dashboardLayout = (List<Object>) viewDetails.get("dashboardLayout");
@@ -734,6 +765,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					Map<String, Object> section = (Map<String, Object>) sectionObj;
 					if (title.equals((String) section.get("title"))) {
 						fluidService = (String) section.get("service");
+						break;
 					}
 				}
 			}
@@ -1050,5 +1082,52 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		return "{\"childActivityDefinition\":\"" + getModel().getActivity() + "\",\t\"service\":\"" + getService()
 				+ "\",\t\"parentActivityDefinition\":\"" + getParentActivityName() + "\",\t\"service\":\""
 				+ getParentActivityDefinition().getService() + "\",\t\"launchedBy\":\"" + getTableField() + "\"}";
+	}
+
+	/**
+	 * Use a new ChildActivityDefinition and supply the table and field for that launch contract
+	 * 
+	 * @param childActivityDef
+	 * @param table
+	 * @param field
+	 * @return Response of the ChildTypeRequest
+	 */
+	public static void loadChildActivity(ChildActivityDefinition childActivityDef, String table, String field) {
+		childActivityDef.createLaunchContract(table, field);
+		
+		loadChildActivity(childActivityDef);
+	}
+
+	/**
+	 * Use a ChildActivityDefinition that has already been supplied the table and field for the desired launch contract
+	 * 
+	 * @param childActivityDef
+	 * @return Response of the ChildTypeRequest
+	 */
+	public static void loadChildActivity(ChildActivityDefinition childActivityDef) {
+		if (childActivityDef.getModel() == null) {
+			try {
+				AppServerAdapter.getInstance().loadActivityDef(childActivityDef, childActivityDef.getLastLoadActivityRequest());
+			} catch (Throwable e) {
+				e.printStackTrace();
+				throw new IllegalStateException(e);
+			}
+		}
+		
+		try {
+			if (childActivityDef.getType() == LaunchContractType.LOADDATA){
+				/*PresentationMessage oResponse = */AppServerAdapter.getInstance().loadData(childActivityDef, childActivityDef.getLastLoadDataRequest());
+			}
+		} catch (Throwable e) {
+			e.printStackTrace();
+			throw new IllegalStateException(e);
+		}
+		
+		try {
+			childActivityDef.nextTableFieldCascadeDive();
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+			throw new IllegalStateException("Validation error while cascading buttons in Child LoadDataResponse");
+		}
 	}
 }
