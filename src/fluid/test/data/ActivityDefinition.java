@@ -411,14 +411,16 @@ public class ActivityDefinition {
    
    public void processResponse(PresentationMessage responseMessage) throws Throwable {
 
-      for (String tableName : this.dataSourceDefinitionMap.keySet()) {
-          DataSourceDefinition dsDef = this.dataSourceDefinitionMap.get(tableName);
-          if (dsDef != getGenSearchDataSourceDefinition() &&
-         		 dsDef != getAdvSearchDataSourceDefinition() &&
-         		 dsDef != getResultsDataSourceDefinition()) {
-        	  responseMessage.populateRecordList(dsDef);
-          }
-       }
+	   if (responseMessage.hasDataSets()) {
+	      for (String tableName : this.dataSourceDefinitionMap.keySet()) {
+	          DataSourceDefinition dsDef = this.dataSourceDefinitionMap.get(tableName);
+	          if (dsDef != getGenSearchDataSourceDefinition() &&
+	         		 dsDef != getAdvSearchDataSourceDefinition() &&
+	         		 dsDef != getResultsDataSourceDefinition()) {
+	        	  responseMessage.populateRecordList(dsDef);
+	          }
+	       }
+      }
 	   
 	   if (this.asyncResponses) {
 		   return;
