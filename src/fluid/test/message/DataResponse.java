@@ -82,6 +82,7 @@ public class DataResponse extends ValidationResponse {
 					
 					Map<String, Record> changedRecords = new HashMap<>();
 					Boolean hasChanges = (Boolean) jsDataSet.get("prods:hasChanges");
+					dsDef.setChanges(hasChanges);
 					if (Boolean.TRUE.equals(hasChanges)) {
 						JsonObject prodsBefore = (JsonObject) jsDataSet.get("prods:before");
 						if (prodsBefore != null && prodsBefore.get(dsDef.getTableName()) != null) {

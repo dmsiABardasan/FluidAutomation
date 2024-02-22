@@ -601,11 +601,13 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		setReturnProperties(null);
 		
 		final String launchActivity;
-		if ("button".equals(table) && !"Edit".equalsIgnoreCase(field)) {
+		if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY);
-		} else {
+		} else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER) != null) {
 			setType(LaunchContractType.SEARCH);
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER);
+		} else {
+			launchActivity = null;
 		}
 		
 		LoadActivityRequest subActivityRequest = new LoadActivityRequest();
@@ -1130,4 +1132,5 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			throw new IllegalStateException("Validation error while cascading buttons in Child LoadDataResponse");
 		}
 	}
+	
 }

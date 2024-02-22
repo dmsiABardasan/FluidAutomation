@@ -366,15 +366,6 @@ public class ActivityDefinition {
  throw e;
       }*/
       
-/*      for (String tableName : this.dataSourceDefinitionMap.keySet()) {
- DataSourceDefinition dsDef = this.dataSourceDefinitionMap.get(tableName);
- if (dsDef != getGenSearchDataSourceDefinition() &&
-		 dsDef != getAdvSearchDataSourceDefinition() &&
-		 dsDef != getResultsDataSourceDefinition()) {
-	 loadDataResponse.populateRecordList(dsDef);
- }
-      }*/
-      
       processResponse(loadDataResponse);
    }
    
@@ -410,17 +401,17 @@ public class ActivityDefinition {
    }
    
    public void processResponse(PresentationMessage responseMessage) throws Throwable {
-
-	   if (responseMessage.hasDataSets()) {
-	      for (String tableName : this.dataSourceDefinitionMap.keySet()) {
-	          DataSourceDefinition dsDef = this.dataSourceDefinitionMap.get(tableName);
-	          if (dsDef != getGenSearchDataSourceDefinition() &&
-	         		 dsDef != getAdvSearchDataSourceDefinition() &&
-	         		 dsDef != getResultsDataSourceDefinition()) {
-	        	  responseMessage.populateRecordList(dsDef);
-	          }
-	       }
-      }
+	   
+       if (responseMessage.hasDataSets()) {
+          for (String tableName : this.dataSourceDefinitionMap.keySet()) {
+             DataSourceDefinition dsDef = this.dataSourceDefinitionMap.get(tableName);
+             if (dsDef != getGenSearchDataSourceDefinition() &&
+                   dsDef != getAdvSearchDataSourceDefinition() &&
+                   dsDef != getResultsDataSourceDefinition()) {
+                responseMessage.populateRecordList(dsDef);
+             }
+          }
+	   }
 	   
 	   if (this.asyncResponses) {
 		   return;
@@ -439,12 +430,14 @@ public class ActivityDefinition {
        if (responseMessage.hasErrors()) {
           
           /*a blank error means that the UI will clear the error icon from the field*/
-          List<Error> errors = responseMessage.getErrorList();
-          for (Error error : errors) {
-            if (error.getMsg().trim().isEmpty() && (ErrorTypeEnum.ERROR.getValue().equals(error.getType()))) {
-               this.model.removeError(error.getField());
-            }
-          }
+			if (responseMessage != this.model) {
+				List<Error> errors = responseMessage.getErrorList();
+				for (Error error : errors) {
+					if (error.getMsg().trim().isEmpty() && (ErrorTypeEnum.ERROR.getValue().equals(error.getType()))) {
+						this.model.removeError(error.getField());
+					}
+				}
+			}
           
           responseMessage.removeBlankErrorMessages();
           this.model.appendErrorSetFrom(responseMessage);
@@ -485,6 +478,9 @@ public class ActivityDefinition {
 		}
 		
 		switch (oCtrlProp) {
+			case ACTIVITYCLOSE:
+				setClosed("window.dummy".equals(cPropValue));
+				break;
 			case SCREENVALUE:
 				setScreenValue(cCtrlName, cPropValue);
 				break;

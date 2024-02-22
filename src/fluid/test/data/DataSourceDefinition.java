@@ -20,6 +20,7 @@ public class DataSourceDefinition {
    private int firstRow;
    private int lastRow;
 
+   private Boolean changes;
    private Boolean trackingChanges;
    private int irecId = 0;
    
@@ -30,6 +31,14 @@ public class DataSourceDefinition {
    
    public DataSourceDefinition(String tableName) {
       setTableName(tableName);
+   }
+   
+   public Boolean hasChanges() {
+	   return this.changes;
+   }
+   
+   public void setChanges(Boolean changes) {
+	   this.changes = changes;
    }
    
    public void setTrackingChanges(Boolean trackingChanges) {

@@ -75,8 +75,8 @@ public class SaveDataRequest extends Request {
                 	  
                 	  boolean dataSetHasChanges = false;
                 	  
-                	  if (dataSet.getDataSet().containsKey(prodsHasChangesString) && dataSet.getDataSet().get(prodsHasChangesString) != null) {
-                		  dataSetHasChanges = (boolean) dataSet.getDataSet().get(prodsHasChangesString);
+                	  if (dsDef.hasChanges() != null && dsDef.hasChanges()) {
+                		  dataSetHasChanges = (boolean) dsDef.hasChanges();
                 	  }
                 	  
                 	  if (!backingRecords.equals(records)) {
