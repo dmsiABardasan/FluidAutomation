@@ -2,6 +2,7 @@ package fluid.test.data;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 import fluid.test.message.CtrlProp;
 import fluid.test.message.PresentationMessage;
@@ -81,6 +82,20 @@ public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 			origRef = ((ActivityDefinitionResponseCascader) origRef).getOriginalReference();
 		}
 		return origRef != null ? origRef : this ;
+	}
+	
+	public Stack<ActivityDefinition> getReferenceStack() {
+		Stack<ActivityDefinition> stack = new Stack<ActivityDefinition>();
+		getReferenceStack(stack);
+		return stack;
+	}
+	
+	private ActivityDefinition getReferenceStack(Stack<ActivityDefinition> stack) {
+		ActivityDefinition origRef = getActivityReference();
+		if (origRef != null && origRef instanceof ActivityDefinitionResponseCascader) {
+			origRef = ((ActivityDefinitionResponseCascader) origRef).getReferenceStack(stack);
+		}
+		return stack.push(origRef != null ? origRef : this);
 	}
 	
 	/**

@@ -673,6 +673,11 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
     	}
 
     	setLastLoadActivityRequest(subActivityRequest);
+    	
+    	if (getActivityReference() != null) {
+    		getReferenceStack().forEach((activityDef) -> activityDef.setLastLoadActivityRequest(getLastLoadActivityRequest()));
+    		getReferenceStack().forEach((activityDef) -> activityDef.setLastLoadDataRequest(getLastLoadDataRequest()));
+    	}
 	}
 
 	private LoadDataRequest loadDataRequest(String loadRowid) {
@@ -734,6 +739,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			final String title; 
 			if (this.passThroughName != null && !this.passThroughName.isEmpty()) { // Only called if explicitly specified by the 'else' block
 				title = this.passThroughName;
+				this.passThroughName = null;
 			} else {
 				String titles = fluidService.substring(PASS_THROUGH_FUNCTION.length(), fluidService.lastIndexOf(']')).replaceAll("_", " ");
 				String[] titlesArr = titles.split(";");
@@ -825,7 +831,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	void pointToActivity(ActivityDefinition activityDef) {
 		super.pointToActivity(activityDef);
 		if (activityDef instanceof ChildActivityDefinition) {
-			setParentActivityDefinition(((ChildActivityDefinition) activityDef).getParentActivityDefinition());
+			ChildActivityDefinition childActivityDef = (ChildActivityDefinition) activityDef; 
+			setParentActivityDefinition(childActivityDef.getParentActivityDefinition());
 		}
 	}
 	
@@ -855,7 +862,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 				Object value = loadDataResponse.getParamAsObject("finderReturn");
 				parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
 				parentActivityDef.validateAsynchronously(new String[][] {{table,field}});
-			}
+			} else
 			
 			if (returnProps != null && !returnProps.isEmpty()) {
 				String[] pairs = returnProps.split("\\,");
@@ -912,7 +919,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					Object value = saveDataResponse.getParamAsObject(tableKey[1]);
 					
 					parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-					parentActivityDef.validateField(table, field);
 					asyncTableFields[i][0] = table;
 					asyncTableFields[i][1] = field;
 				}
@@ -1107,9 +1113,14 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	 * @return Response of the ChildTypeRequest
 	 */
 	public static void loadChildActivity(ChildActivityDefinition childActivityDef) {
+		boolean pointer = childActivityDef.getActivityReference() != null;
+		
 		if (childActivityDef.getModel() == null) {
 			try {
-				AppServerAdapter.getInstance().loadActivityDef(childActivityDef, childActivityDef.getLastLoadActivityRequest());
+				LoadActivityResponse loadActivityResponse = AppServerAdapter.getInstance().loadActivityDef(childActivityDef, childActivityDef.getLastLoadActivityRequest());
+				if (pointer) {
+					childActivityDef.getReferenceStack().forEach((activityDef) -> activityDef.setModel(loadActivityResponse));
+				}
 			} catch (Throwable e) {
 				e.printStackTrace();
 				throw new IllegalStateException(e);
@@ -1118,7 +1129,10 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		
 		try {
 			if (childActivityDef.getType() == LaunchContractType.LOADDATA){
-				/*PresentationMessage oResponse = */AppServerAdapter.getInstance().loadData(childActivityDef, childActivityDef.getLastLoadDataRequest());
+				LoadDataResponse loadDataResponse = AppServerAdapter.getInstance().loadData(childActivityDef, childActivityDef.getLastLoadDataRequest());
+				if (pointer) {
+					childActivityDef.getReferenceStack().forEach((activityDef) -> activityDef.setLastLoadDataResponse(loadDataResponse));
+				}
 			}
 		} catch (Throwable e) {
 			e.printStackTrace();
