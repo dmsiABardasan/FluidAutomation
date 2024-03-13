@@ -136,7 +136,7 @@ public enum CrudButtonEnum {
 				}
 				break;
 			case CLOSE:
-				activityDef.setClosed(true);
+				activityDef.close();
 				oResponse = null;
 				break;
 			case REFRESH:

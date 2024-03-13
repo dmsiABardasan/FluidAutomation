@@ -111,6 +111,10 @@ public class ActivityDefinition {
 	   return this.closed;
    }
    
+   public void close() {
+	   this.closed = true;
+   }
+   
    public void setClosed(boolean closed) {
 	   this.closed = closed;
    }
@@ -371,7 +375,7 @@ public class ActivityDefinition {
    
    public void processSaveDataResponse(SaveDataResponse saveDataResponse) throws Throwable {
 		if (saveDataResponse.getCtrlProp("window.dummy", CtrlPropEnum.ACTIVITYCLOSE) != null) {
-			setClosed(true);
+			close();
 		} else {
 			if (!saveDataResponse.hasCtrlProps() && saveDataResponse.getSaveSuccess()) {
 				String savedRecordId = saveDataResponse.getSaveRowId();
@@ -479,7 +483,7 @@ public class ActivityDefinition {
 		
 		switch (oCtrlProp) {
 			case ACTIVITYCLOSE:
-				setClosed("window.dummy".equals(cPropValue));
+				if ("window.dummy".equals(cPropValue)) close();
 				break;
 			case SCREENVALUE:
 				setScreenValue(cCtrlName, cPropValue);

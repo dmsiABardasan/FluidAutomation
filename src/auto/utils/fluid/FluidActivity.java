@@ -65,7 +65,7 @@ public abstract class FluidActivity {
 		ActivityDefinition activityDef = getActivityDefinition();
 		Set<ChildActivityDefinition> childSet = new HashSet<ChildActivityDefinition>(activityDef.getChildSet());
 		for (ActivityDefinition childActivityDef : childSet) {
-			childActivityDef.setClosed(true);
+			childActivityDef.close();
 		}
 	}
 	

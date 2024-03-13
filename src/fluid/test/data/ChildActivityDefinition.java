@@ -208,6 +208,12 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	}
 	
 	@Override
+	public void close() {
+		super.close();
+		getParentActivityDefinition().getChildSet().remove(this);
+	}
+	
+	@Override
 	public LoadDataResponse loadCurrentResultRecord() throws Throwable {
 		LoadDataResponse loadDataResponse;
 		switch (getType()) {
@@ -230,7 +236,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 						e.fillInStackTrace();
 						throw e;
 					} else {
-						setClosed(true);
+						close();
 					}
 				} else {
 					LoadDataRequest loadDataRequest = new LoadDataRequest(getLastLoadActivityRequest().serializeMessage());
@@ -246,7 +252,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 						e.fillInStackTrace();
 						throw e;
 					} else {
-						setClosed(true);
+						close();
 						saveResponseToParent(loadDataResponse);
 					}
 				}
@@ -310,7 +316,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	
 	/**
 	 * Checks the response if the parent of this activity has been closed, if so,
-	 * sets {@link #setClosed(boolean)} to true
+	 * sets {@link #close()} to true
 	 * 
 	 * @param beforeSaveDataResponse
 	 *            SaveDataResponse from a SaveDataRequest this activity sent
@@ -318,7 +324,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	@Override
 	public void processSaveDataResponse(SaveDataResponse saveDataResponse) throws Throwable {
 		if (saveDataResponse.getCtrlProp("window.parent", CtrlPropEnum.ACTIVITYCLOSE) != null) {
-			getParentActivityDefinition().setClosed(true);
+			getParentActivityDefinition().close();
 		}
 		super.processSaveDataResponse(saveDataResponse);
 		

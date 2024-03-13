@@ -71,4 +71,19 @@ public class Reader {
 		return lines;
 	}
 	
+	public static List<String> bufferedReaderGeneral(String path) {
+		List<String> lines = new ArrayList<String>();
+		try {
+			final BufferedReader in = new BufferedReader(new InputStreamReader(new FileInputStream(path), CHAR_SET));
+			String line;
+			while ((line = in.readLine()) != null) {
+				lines.add(line);
+			}
+			in.close();
+		} catch (final IOException e) {
+			e.printStackTrace();
+		}
+		return lines;
+	}
+	
 }

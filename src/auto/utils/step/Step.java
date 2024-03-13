@@ -421,7 +421,7 @@ public class Step {
 						strBldr.append("Button <" + getTableField());
 					}
 				}
-			}else {
+			} else {
 				exists = true;
 			}
 		} else if (!activityDef.getDataSourceDefinitionMap().containsKey(getTable())) {
@@ -563,26 +563,24 @@ public class Step {
 					
 					if (!step.isLaunch()) {
 						step.validationHandling(activityDefRes, childActivityDefList, procedure, haltOnChildActivity, clickCrudButtons);
-
+						
 					} else {
 						activityDefRes = step.childHandling(childActivityDefList, activityDefRes, procedure, haltOnChildActivity, clickCrudButtons);
 					}
 
 					PresentationMessage stepResponse = step.getResponse();
-					if (stepResponse != null) {
-						if (activityDefRes.isClosed()) {
-							step.getLabel().add("Closed activity \"" + step.getCalledActivityName() + "\"");
-							if (activityDefRes instanceof ChildActivityDefinition) {
-								ChildActivityDefinition childActivityDef = (ChildActivityDefinition) activityDefRes;
-								ActivityDefinitionResponseCascader parentActivityDef = ActivityDefinitionResponseCascader.getInstance(childActivityDef.getParentActivityDefinition());
-								activityDefRes = (ActivityDefinitionResponseCascader) parentActivityDef;
-							}else {
-								break;
-							}
-						} else if (stepResponse.getCtrlProp("window.parent", CtrlPropEnum.ACTIVITYCLOSE) != null) {
-							if (activityDefRes instanceof ChildActivityDefinition) {
-								step.getLabel().add("Closed parent activity \"" + ((ChildActivityDefinition) activityDefRes).getParentActivityName() + "\"");
-							}
+					if (activityDefRes.isClosed()) {
+						step.getLabel().add("Closed activity \"" + step.getCalledActivityName() + "\"");
+						if (activityDefRes instanceof ChildActivityDefinition) {
+							ChildActivityDefinition childActivityDef = (ChildActivityDefinition) activityDefRes;
+							ActivityDefinitionResponseCascader parentActivityDef = ActivityDefinitionResponseCascader.getInstance(childActivityDef.getParentActivityDefinition());
+							activityDefRes = (ActivityDefinitionResponseCascader) parentActivityDef;
+						}else {
+							break;
+						}
+					} else if (stepResponse != null && stepResponse.getCtrlProp("window.parent", CtrlPropEnum.ACTIVITYCLOSE) != null) {
+						if (activityDefRes instanceof ChildActivityDefinition) {
+							step.getLabel().add("Closed parent activity \"" + ((ChildActivityDefinition) activityDefRes).getParentActivityName() + "\"");
 						}
 					}
 					
