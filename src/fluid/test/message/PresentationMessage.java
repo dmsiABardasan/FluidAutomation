@@ -2,7 +2,6 @@ package fluid.test.message;
 
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.Map;
 import java.util.Objects;
 
 import fluid.test.json.JsonArray;
@@ -13,7 +12,7 @@ public class PresentationMessage extends DataResponse {
    public static final String CTRL_PROPS_JSON_KEY = "ctrlProp";
 
    private String callingField;
-   private Map<CtrlPropPair, String> ttCtrlProps = new LinkedHashMap<CtrlPropPair, String>();
+   private LinkedHashMap<CtrlPropPair, String> ttCtrlProps = new LinkedHashMap<CtrlPropPair, String>();
 
    public PresentationMessage() {
       super();
@@ -125,8 +124,12 @@ public class PresentationMessage extends DataResponse {
       return ttCtrlProp;
    }
 
-   public Map<CtrlPropPair, String> getCtrlProperties() {
+   public LinkedHashMap<CtrlPropPair, String> getCtrlProperties() {
       return ttCtrlProps;
+   }
+   
+   public void setCtrlProperties (LinkedHashMap<CtrlPropPair, String> ctrlProperties) {
+	   this.ttCtrlProps = ctrlProperties;
    }
 
 }

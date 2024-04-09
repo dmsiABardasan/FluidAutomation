@@ -375,28 +375,36 @@ public class ActivityDefinition {
    
    public void processSaveDataResponse(SaveDataResponse saveDataResponse) throws Throwable {
 		if (saveDataResponse.getCtrlProp("window.dummy", CtrlPropEnum.ACTIVITYCLOSE) != null) {
-			close();
-		} else {
-			if (!saveDataResponse.hasCtrlProps() && saveDataResponse.getSaveSuccess()) {
-				String savedRecordId = saveDataResponse.getSaveRowId();
-				if (savedRecordId != null && !savedRecordId.isEmpty() && getGenSearchDataSourceDefinition() != null) {
-					GetResultsRequest getResultsRequest = new GetResultsRequest();
-					getResultsRequest.setParam("rowid", savedRecordId);
-					AppServerAdapter.getInstance().getResults(this, getResultsRequest);
-					loadCurrentResultRecord();
-				} else {
-					LoadDataRequest loadDataRequest = new LoadDataRequest(savedRecordId != null 
-							? LoadDataModeEnum.EDIT
-							: LoadDataModeEnum.ADD);
-					loadDataRequest.setLoadRowid(savedRecordId != null
-							? savedRecordId 
-							: "");
-					AppServerAdapter.getInstance().loadData(this, loadDataRequest);
+			LinkedHashMap<CtrlPropPair, String> newCtrlProps = new LinkedHashMap<>();
+			for (Map.Entry<CtrlPropPair, String> ctrlProp : saveDataResponse.getCtrlProperties().entrySet()) {
+				newCtrlProps.put(ctrlProp.getKey(), ctrlProp.getValue());
+				if ("window.dummy".equals(ctrlProp.getKey().getName()) && CtrlPropEnum.ACTIVITYCLOSE == ctrlProp.getKey().getProp()) {
+					break;
 				}
+			}
+			saveDataResponse.setCtrlProperties(newCtrlProps);
+		}
+		
+		if (!saveDataResponse.hasCtrlProps() && saveDataResponse.getSaveSuccess()) {
+			String savedRecordId = saveDataResponse.getSaveRowId();
+			if (savedRecordId != null && !savedRecordId.isEmpty() && getGenSearchDataSourceDefinition() != null) {
+				GetResultsRequest getResultsRequest = new GetResultsRequest();
+				getResultsRequest.setParam("rowid", savedRecordId);
+				AppServerAdapter.getInstance().getResults(this, getResultsRequest);
+				loadCurrentResultRecord();
 			} else {
-				processResponse(saveDataResponse);
+				LoadDataRequest loadDataRequest = new LoadDataRequest(savedRecordId != null 
+						? LoadDataModeEnum.EDIT
+						: LoadDataModeEnum.ADD);
+				loadDataRequest.setLoadRowid(savedRecordId != null
+						? savedRecordId 
+						: "");
+				AppServerAdapter.getInstance().loadData(this, loadDataRequest);
 			}
 		}
+		
+		processResponse(saveDataResponse);
+		
    }
    
    @FunctionalInterface
