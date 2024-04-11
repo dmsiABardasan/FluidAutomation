@@ -11,6 +11,7 @@ public class PresentationMessage extends DataResponse {
 
    public static final String CTRL_PROPS_JSON_KEY = "ctrlProp";
 
+   private AbstractMessage callingRequest;
    private String callingField;
    private LinkedHashMap<CtrlPropPair, String> ttCtrlProps = new LinkedHashMap<CtrlPropPair, String>();
 
@@ -128,8 +129,16 @@ public class PresentationMessage extends DataResponse {
       return ttCtrlProps;
    }
    
-   public void setCtrlProperties (LinkedHashMap<CtrlPropPair, String> ctrlProperties) {
+   public void setCtrlProperties(LinkedHashMap<CtrlPropPair, String> ctrlProperties) {
 	   this.ttCtrlProps = ctrlProperties;
    }
+
+	public AbstractMessage getCallingRequest() {
+		return callingRequest;
+	}
+	
+	public void setCallingRequest(AbstractMessage request) {
+		this.callingRequest = request;
+	}
 
 }

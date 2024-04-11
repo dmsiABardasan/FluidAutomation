@@ -25,6 +25,7 @@ import fluid.test.data.ActivityDefinitionResponseCascader;
 import fluid.test.data.ChildActivityDefinition;
 import fluid.test.data.DataSourceDefinition;
 import fluid.test.data.ViewDefinition;
+import fluid.test.message.AbstractMessage;
 import fluid.test.message.CtrlPropEnum;
 import fluid.test.message.CtrlPropPair;
 import fluid.test.message.LoadActivityRequest;
@@ -292,6 +293,14 @@ public class Step {
 	 */
 	public PresentationMessage getResponse() {
 		return response;
+	}
+	
+	public AbstractMessage getRequest() {
+		AbstractMessage request = null;
+		if (this.response != null) {
+			request = this.response.getCallingRequest();
+		}
+		return request;
 	}
 	
 	/**

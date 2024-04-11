@@ -326,9 +326,9 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		if (saveDataResponse.getCtrlProp("window.parent", CtrlPropEnum.ACTIVITYCLOSE) != null) {
 			getParentActivityDefinition().close();
 		}
-		super.processSaveDataResponse(saveDataResponse);
 		
-		if (isClosed() && !getParentActivityDefinition().isClosed()) {
+		if (saveDataResponse.getCtrlProp("window.dummy", CtrlPropEnum.ACTIVITYCLOSE) != null
+				&& !getParentActivityDefinition().isClosed()) {
 			
 			SaveDataResponse saveDataResponseDeepClone = new SaveDataResponse(saveDataResponse.serializeMessage());
 			Map<CtrlPropPair, String> ctrlPropCopy = new LinkedHashMap<CtrlPropPair, String>(saveDataResponse.getCtrlProperties());
@@ -341,6 +341,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			}
 			saveResponseToParent(saveDataResponseDeepClone);
 		}
+		
+		super.processSaveDataResponse(saveDataResponse);
 	}
 
 	private boolean isAncestorProperty(final String ctrlName, final CtrlPropEnum ctrlProp, final String ctrlValue,

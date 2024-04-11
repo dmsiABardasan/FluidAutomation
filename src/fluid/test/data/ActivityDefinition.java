@@ -941,18 +941,20 @@ public class ActivityDefinition {
                   String fldType = fieldDef.getType();
                   
 	                  if (fldType.equalsIgnoreCase("DATE")) {
-	                     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
-	                     try {
-	                        record.setFieldValue(fieldName, df.parse(screenValue));
-	                     } catch (ParseException e1) {
-	                    	try {
-								record.setFieldValue(fieldName, df.format(new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat()).parse(screenValue)));
-							} catch (ParseException e2) {
-		                        record.setFieldValue(fieldName, screenValue);
-							}
-	                     }catch(NullPointerException e1) {
-	                    	 record.setFieldValue(fieldName, "");
-	                     }
+	                	  if (screenValue == null) {
+	                		  record.setFieldValue(fieldName, null);
+	                	  } else {
+		                     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		                     try {
+		                        record.setFieldValue(fieldName, df.parse(screenValue));
+		                     } catch (ParseException e1) {
+		                    	try {
+									record.setFieldValue(fieldName, df.format(new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat()).parse(screenValue)));
+								} catch (ParseException e2) {
+			                        record.setFieldValue(fieldName, screenValue);
+								}
+		                     }
+	                	  }
 	                  } else if (fldType.equalsIgnoreCase("DATETIME")) {
 	                     SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
 	                     try {

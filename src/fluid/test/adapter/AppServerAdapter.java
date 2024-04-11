@@ -72,12 +72,14 @@ public abstract class AppServerAdapter {
     
 	public LoadActivityResponse loadActivityDef(ActivityDefinition activityDefinition, LoadActivityRequest loadActivityRequest) throws Throwable {
 		LoadActivityResponse loadActivityResponse = (LoadActivityResponse) sendAppServerApiRequest(AppServerApiEnum.loadActivityDef, activityDefinition, null, loadActivityRequest);
+		loadActivityResponse.setCallingRequest(loadActivityRequest);
 		activityDefinition.initializeModel(loadActivityResponse);
 		return loadActivityResponse;
 	}
 	
 	public GetResultsResponse getResults(ActivityDefinition activityDefinition, GetResultsRequest getResultsRequest) throws Throwable {
 		GetResultsResponse getResultsResponse = (GetResultsResponse) sendAppServerApiRequest(AppServerApiEnum.getResults, activityDefinition, null, getResultsRequest);
+		getResultsResponse.setCallingRequest(getResultsRequest);
 		activityDefinition.processGetResultsResponse(getResultsResponse);
 		return getResultsResponse;
 	}
@@ -85,12 +87,14 @@ public abstract class AppServerAdapter {
 	public LoadDataResponse loadData(ActivityDefinition activityDefinition, LoadDataRequest loadDataRequest) throws Throwable {
 		activityDefinition.setLastLoadDataRequest(loadDataRequest);
 		LoadDataResponse loadDataResponse = (LoadDataResponse) sendAppServerApiRequest(AppServerApiEnum.loadData, activityDefinition, null, loadDataRequest);
+		loadDataResponse.setCallingRequest(loadDataRequest);
 		activityDefinition.processLoadDataResponse(loadDataResponse);
 		return loadDataResponse;
 	}
 	
 	public SaveDataResponse saveData(ActivityDefinition activityDefinition, SaveDataRequest saveDataRequest) throws Throwable {
 		SaveDataResponse saveDataResponse = (SaveDataResponse) sendAppServerApiRequest(AppServerApiEnum.saveData, activityDefinition, null, saveDataRequest);
+		saveDataResponse.setCallingRequest(saveDataRequest);
 		activityDefinition.processSaveDataResponse(saveDataResponse);
 		return saveDataResponse;
 	}
@@ -98,12 +102,14 @@ public abstract class AppServerAdapter {
 	public PresentationMessage presenter(ActivityDefinition activityDefinition, String ipFunction, PresentationMessage ipRequest) throws Throwable {
 		PresentationMessage oResponse = (PresentationMessage) sendAppServerApiRequest(AppServerApiEnum.presenter, activityDefinition, ipFunction, ipRequest);
 		oResponse.setCallingField(ipRequest.getCallingField());
+		oResponse.setCallingRequest(ipRequest);
 		activityDefinition.processResponse(oResponse);
 		return oResponse;
 	}
 	
 	public ActivityTaskResponse submitActivityTask(ActivityDefinition activityDefinition, ActivityTaskRequest activityTaskRequest) throws Throwable {
 		ActivityTaskResponse activityTaskResponse = (ActivityTaskResponse) sendAppServerApiRequest(AppServerApiEnum.submitActivityTask, activityDefinition, null, activityTaskRequest);
+		activityTaskResponse.setCallingRequest(activityTaskRequest);
 		activityDefinition.processLoadDataResponse(activityTaskResponse);
 		return activityTaskResponse;
 	}
