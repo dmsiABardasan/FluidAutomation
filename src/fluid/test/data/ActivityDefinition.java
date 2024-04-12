@@ -375,6 +375,8 @@ public class ActivityDefinition {
    
    public void processSaveDataResponse(SaveDataResponse saveDataResponse) throws Throwable {
 		if (saveDataResponse.getCtrlProp("window.dummy", CtrlPropEnum.ACTIVITYCLOSE) != null) {
+			saveDataResponse = new SaveDataResponse(saveDataResponse.serializeMessage());
+			
 			LinkedHashMap<CtrlPropPair, String> newCtrlProps = new LinkedHashMap<>();
 			for (Map.Entry<CtrlPropPair, String> ctrlProp : saveDataResponse.getCtrlProperties().entrySet()) {
 				newCtrlProps.put(ctrlProp.getKey(), ctrlProp.getValue());
@@ -382,6 +384,7 @@ public class ActivityDefinition {
 					break;
 				}
 			}
+			
 			saveDataResponse.setCtrlProperties(newCtrlProps);
 		}
 		
@@ -491,7 +494,7 @@ public class ActivityDefinition {
 		
 		switch (oCtrlProp) {
 			case ACTIVITYCLOSE:
-				if ("window.dummy".equals(cPropValue)) close();
+				if ("window.dummy".equals(cCtrlName)) close();
 				break;
 			case SCREENVALUE:
 				setScreenValue(cCtrlName, cPropValue);
