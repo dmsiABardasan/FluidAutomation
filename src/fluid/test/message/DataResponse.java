@@ -57,7 +57,6 @@ public class DataResponse extends ValidationResponse {
 
    public void populateRecordList(DataSourceDefinition dsDef) {
 	  
-      dsDef.setRecordList(null); //clear the current data
       for (DataSet dataSet : ttDataSets) {
          if (dataSet.getName().equalsIgnoreCase(dsDef.getDataSetName())) {
             JsonObject jsDataSet = (JsonObject) dataSet.getDataSet().get(dsDef.getDataSetName());
@@ -68,6 +67,8 @@ public class DataResponse extends ValidationResponse {
             
             JsonArray jsTable = (JsonArray) jsDataSet.get(dsDef.getTableName());
             if (jsTable != null) {
+            	
+               dsDef.setRecordList(null); //clear the current data
                dsDef.setDataSetID(dataSet.getDataSetID());
                
                List<Record> records = new ArrayList<Record>();
