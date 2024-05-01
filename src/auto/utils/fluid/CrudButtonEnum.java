@@ -105,7 +105,7 @@ public enum CrudButtonEnum {
 				break;
 			case SAVE:
 				//$saveActivityData(this$static.presenter, true, false);
-				oResponse = ActivityDefinitionUtils.saveData(activityDef, false, false);
+				oResponse = ActivityDefinitionUtils.saveData(activityDef, activityDef.isStopOnWarnining(), activityDef.isValidateOnly());
 				break;
 			case FIND:
 				GetResultsRequest genGetResults;

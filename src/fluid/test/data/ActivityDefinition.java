@@ -54,6 +54,8 @@ public class ActivityDefinition {
    private PresentationMessage injectedParams;
    private boolean closed;
    private String service;
+   private boolean stopOnWarning = false;
+   private boolean validateOnly = false;
    
    private boolean asyncResponses = false;
    
@@ -70,6 +72,22 @@ public class ActivityDefinition {
    public boolean mlDebugTrace;
    
    public ActivityDefinition() {}
+   
+   public boolean isValidateOnly() {
+	   return this.validateOnly;
+   }
+   
+   public void setValidateOnly(boolean validateOnly) {
+	   this.validateOnly = validateOnly;
+   }
+   
+   public boolean isStopOnWarnining() {
+	   return this.stopOnWarning;
+   }
+   
+   public void setStopOnWarning(boolean stopOnWarning) {
+	   this.stopOnWarning = stopOnWarning;
+   }
    
    public PresentationMessage getInjectedParams() {
 	   return this.injectedParams;
