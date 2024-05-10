@@ -1,5 +1,7 @@
 package fluid.test.message;
 
+import fluid.test.data.DataSourceDefinition;
+
 public class LoadDataResponse extends PresentationMessage {
 
    private LoadDataModeEnum loadDataMode;
@@ -17,4 +19,10 @@ public class LoadDataResponse extends PresentationMessage {
    public LoadDataModeEnum getLoadDataMode() {
 	   return this.loadDataMode;
    }
+   
+	@Override
+	public void populateRecordList(DataSourceDefinition dsDef) {
+	   dsDef.setRecordList(null);
+	   super.populateRecordList(dsDef);
+	}
 }

@@ -14,6 +14,7 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 
 import auto.utils.fluid.ActivityTypeEnum;
+import auto.utils.fluid.FluidEvent;
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ChildActivityDefinition;
@@ -274,7 +275,11 @@ public final class ActivityDefinitionUtils {
 	 * @return PresentationMessage response from the validation request
 	 */
 	public static PresentationMessage validateField(ActivityDefinition activityDef, String table, String field) {
-		return validateField(activityDef, table, field, true);
+		return validateField(activityDef, table, field, FluidEvent.LEAVE, true);
+	}
+	
+	public static PresentationMessage validateField(ActivityDefinition activityDef, String table, String field, boolean checkForErrors) {
+		return validateField(activityDef, table, field, FluidEvent.LEAVE, checkForErrors);
 	}
 	
 	/**
@@ -287,6 +292,7 @@ public final class ActivityDefinitionUtils {
 	 * @return	PresentationMessage response from the validation request
 	 */
 	public static PresentationMessage validateField(ActivityDefinition activityDef, String table, String field,
+			FluidEvent fluidEvent,
 			boolean checkForErrors) {
 
 		PresentationMessage oResponse = null;
@@ -323,7 +329,7 @@ public final class ActivityDefinitionUtils {
 				saveDataRequest.setParam("eventCtrlName", "button."+field);
 				oResponse = saveData(activityDef, saveDataRequest, false, false);
 			} else {
-				oResponse = activityDef.validateField(table, field);
+				oResponse = activityDef.validateField(table, field, fluidEvent);
 			}
 			
 			if(mlDebugTrace) {

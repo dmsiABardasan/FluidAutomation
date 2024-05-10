@@ -61,17 +61,12 @@ public class DataResponse extends ValidationResponse {
          if (dataSet.getName().equalsIgnoreCase(dsDef.getDataSetName())) {
             JsonObject jsDataSet = (JsonObject) dataSet.getDataSet().get(dsDef.getDataSetName());
             
-            if (jsDataSet.isEmpty()) {
-            	dsDef.setRecordList(null);
-            }
-            
             if (Boolean.TRUE.equals(dataSet.isTrackingChanges())) {
             	dsDef.setTrackingChanges(dataSet.getBiInfo().get(dsDef.getTableName()));
             }
             
             JsonArray jsTable = (JsonArray) jsDataSet.get(dsDef.getTableName());
             if (jsTable != null) {
-            	
                dsDef.setDataSetID(dataSet.getDataSetID());
                
                List<Record> records = new ArrayList<Record>();

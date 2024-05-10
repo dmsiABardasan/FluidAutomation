@@ -19,6 +19,7 @@ import auto.utils.ValidationTypeEnum;
 import auto.utils.fluid.ActivityTypeEnum;
 import auto.utils.fluid.CrudButtonEnum;
 import auto.utils.fluid.Dashboard;
+import auto.utils.fluid.FluidEvent;
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ActivityDefinitionResponseCascader;
@@ -61,6 +62,7 @@ public class Step {
 	private String calledActivityService;
 	private ActivityDefinition calledActivityDefinition;
 	private CtrlPropEnum contractType;
+	private FluidEvent fluidEvent = FluidEvent.LEAVE;
 	
 	public static boolean mlDebugTrace;
 	
@@ -103,6 +105,11 @@ public class Step {
 	
 	public List<ChildActivityDefinition> getChildren() {
 		return this.children;
+	}
+	
+	public Step setFluidEvent(FluidEvent fluidEvent) {
+		this.fluidEvent = fluidEvent;
+		return this;
 	}
 	
 	/**
@@ -238,6 +245,10 @@ public class Step {
 		this.contractType = contractType;
 	}
 
+	public FluidEvent getFluidEvent() {
+		return this.fluidEvent;
+	}
+	
 	/**
 	 * @return Boolean that signifies that this Step is to attempt generation of a
 	 *         ChildActivityDefinition (true) or not (false)
@@ -685,7 +696,7 @@ public class Step {
 						break;
 				}
 			} else {
-				oResponse = ActivityDefinitionUtils.validateField(activityDefRes, getTable(), getField(), false);
+				oResponse = ActivityDefinitionUtils.validateField(activityDefRes, getTable(), getField(), getFluidEvent(), false);
 			}
 		} catch (Throwable ex) {
 /*			System.err.println("WARNING - Error attempting to create request for activity" + getCalledActivityName() + "> field <" + getTableField() + "> in procedure at Step <"

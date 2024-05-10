@@ -9,6 +9,7 @@ import java.util.List;
 import auto.utils.ActivityDefinitionUtils;
 import auto.utils.ValidationTypeEnum;
 import auto.utils.fluid.ActivityVariant;
+import auto.utils.fluid.FluidEvent;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ActivityDefinitionResponseCascader;
 import fluid.test.data.ChildActivityDefinition;
@@ -300,6 +301,33 @@ public class LazyProcedure{
 		getChildList().remove(foundChild);
 		
 		return foundChild;
+	}
+	
+	public Step stepLaunch(ActivityDefinition validationActivity, ValidationTypeEnum validationType, String tableField) {
+		String[] resolvedTableField = resolveTableField(validationActivity, tableField);
+		Step step = new Step(validationType, resolvedTableField[0], resolvedTableField[1]).setLaunch(true);
+		
+		executeStep(validationActivity, step);
+		
+		return step;
+	}
+	
+	public Step stepEvent(FluidEvent fluidEvent, ActivityDefinition validationActivity, ValidationTypeEnum validationType, String tableField) {
+		String[] resolvedTableField = resolveTableField(validationActivity, tableField);
+		Step step = new Step(validationType, resolvedTableField[0], resolvedTableField[1]).setFluidEvent(fluidEvent);
+
+		executeStep(validationActivity, step);
+		
+		return step;
+	}
+	
+	public Step stepEvent(ActivityDefinition validationActivity, ValidationTypeEnum validationType, FluidEvent fluidEvent, String tableField, Object value) {
+		String[] resolvedTableField = resolveTableField(validationActivity, tableField);
+		Step step = new Step(validationType, resolvedTableField[0], resolvedTableField[1], value).setFluidEvent(fluidEvent);
+
+		executeStep(validationActivity, step);
+		
+		return step;
 	}
 	
 	/**

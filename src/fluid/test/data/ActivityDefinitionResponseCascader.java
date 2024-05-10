@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
+import auto.utils.fluid.FluidEvent;
 import fluid.test.message.CtrlProp;
 import fluid.test.message.PresentationMessage;
 
@@ -230,7 +231,7 @@ public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 	}
 	
 	@Override
-	public PresentationMessage validateField(String tableName, String fieldName) throws Throwable {
+	public PresentationMessage validateField(String tableName, String fieldName, FluidEvent fluidEvent) throws Throwable {
 		
 		PresentationMessage oResponse = null;
 		
@@ -238,7 +239,7 @@ public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 			String[] tableField = { tableName, fieldName };
 			getNextTableFields().add(tableField);
 		} else {
-			oResponse = super.validateField(tableName, fieldName);
+			oResponse = super.validateField(tableName, fieldName, fluidEvent);
 		}
 		
 		return oResponse;

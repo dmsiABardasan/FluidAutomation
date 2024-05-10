@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
+import auto.utils.fluid.FluidEvent;
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.json.JsonArray;
 import fluid.test.json.JsonObject;
@@ -26,7 +27,6 @@ import fluid.test.message.CtrlPropEnum;
 import fluid.test.message.CtrlPropPair;
 import fluid.test.message.Error;
 import fluid.test.message.ErrorTypeEnum;
-import fluid.test.message.EventTypeEnum;
 import fluid.test.message.GetResultsRequest;
 import fluid.test.message.GetResultsResponse;
 import fluid.test.message.LoadActivityRequest;
@@ -610,6 +610,10 @@ public class ActivityDefinition {
    }
    
    public PresentationMessage validateField(String tableName, String fieldName) throws Throwable {
+	   return validateField(tableName, fieldName, FluidEvent.LEAVE);
+   }
+   
+   public PresentationMessage validateField(String tableName, String fieldName, FluidEvent fluidEvent) throws Throwable {
       
       String cList;
       
@@ -644,7 +648,7 @@ public class ActivityDefinition {
       /*clear any error icons from the field before validation*/
       this.model.removeError(tableFieldName);
       
-      PresentationMessage oRequest = buildValidationContract( tableName, fieldName, cValidationContract, EventTypeEnum.LEAVE);
+      PresentationMessage oRequest = buildValidationContract( tableName, fieldName, cValidationContract, fluidEvent);
       
       oRequest.setCallingField(tableFieldName);
       
@@ -753,7 +757,7 @@ public class ActivityDefinition {
       
    }
 
-   public PresentationMessage buildValidationContract(String tableName, String fieldName, String validationContract, EventTypeEnum event) {
+   public PresentationMessage buildValidationContract(String tableName, String fieldName, String validationContract, FluidEvent event) {
 
       // Create the request
       PresentationMessage valRequest = new PresentationMessage();
@@ -776,7 +780,7 @@ public class ActivityDefinition {
                   JsonObject requiredDataTable = getRequiredDataTable(table, fieldArray);
                   valRequest.setParam(table, requiredDataTable);
                } else if (req.equalsIgnoreCase("eventName")) {
-                  valRequest.setCtrlProp(req, CtrlPropEnum.SCREENVALUE, event.getValue());
+                  valRequest.setCtrlProp(req, CtrlPropEnum.SCREENVALUE, event.getEventType().getValue());
                } else { // single field value required
                   value = findScreenValue(req);
                   if (value == null) {
@@ -796,6 +800,8 @@ public class ActivityDefinition {
             valRequest.setCtrlProp(tableName + "." + fieldName, CtrlPropEnum.SCREENVALUE, value);
          }
       }
+      
+      event.applyEventToRequest(this, tableName, fieldName, valRequest);
       
       return valRequest;
    }
