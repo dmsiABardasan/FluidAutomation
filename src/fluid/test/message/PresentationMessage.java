@@ -12,7 +12,6 @@ public class PresentationMessage extends DataResponse {
    public static final String CTRL_PROPS_JSON_KEY = "ctrlProp";
 
    private AbstractMessage callingRequest;
-   private String callingField;
    private LinkedHashMap<CtrlPropPair, String> ttCtrlProps = new LinkedHashMap<CtrlPropPair, String>();
 
    public PresentationMessage() {
@@ -39,11 +38,11 @@ public class PresentationMessage extends DataResponse {
    }
    
    public void setCallingField(String callingField) {
-	   this.callingField = callingField;
+	   setParam("eventCtrlName", callingField);
    }
    
    public String getCallingField() {
-	   return this.callingField;
+	   return getParamAsString("eventCtrlName");
    }
    
    public boolean hasCtrlProps() {
