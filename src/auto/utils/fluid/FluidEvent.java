@@ -44,8 +44,8 @@ public interface FluidEvent {
 	 */
 	public static class RecordDropped implements FluidEvent {
 		
-		private int targetIndex; 		// Can only have one position to drop to
-		private int[] droppedIndices; 	// Can have multiple selected
+		protected int targetIndex; 		// Can only have one position to drop to
+		protected int[] droppedIndices; 	// Can have multiple selected
 		
 		public RecordDropped(int[] droppedIndices, int targetIndex) {
 			this.droppedIndices = droppedIndices;
@@ -86,6 +86,57 @@ public interface FluidEvent {
 			targetRecord.put("ttTarget", ttTarget);
 			request.setParam("targetRecord", targetRecord);
 			
+			JsonObject droppedRecords = new JsonObject();
+			droppedRecords.put("ttDropped", ttDropped);
+			request.setParam("droppedRecords", droppedRecords);
+			
+		}
+	}
+	
+	public static class RecordDroppedOtherListGrid extends RecordDropped {
+
+		private String sourceListGridTable;
+		
+		public RecordDroppedOtherListGrid(String sourceListGridTable, int droppedIndex, int targetIndex) {
+			super(droppedIndex, targetIndex);
+			this.sourceListGridTable = sourceListGridTable;
+		}
+		
+		public RecordDroppedOtherListGrid(String sourceListGridTable, int[] droppedIndex, int targetIndex) {
+			super(droppedIndex, targetIndex);
+			this.sourceListGridTable = sourceListGridTable;
+		}
+		
+		@Override
+		public void applyEventToRequest(ActivityDefinition activityDef, String tableName, String fieldName, PresentationMessage request) {
+			
+			DataSourceDefinition targetDsDef = activityDef.getDataSourceDefinitionMap().get(tableName);
+			DataSourceDefinition dsDef = activityDef.getDataSourceDefinitionMap().get(this.sourceListGridTable);
+			if (dsDef == null || targetDsDef == null) {
+				return;
+			}
+			
+			JsonArray ttTarget = new JsonArray();
+			List<Record> targetRecordList = targetDsDef.getRecordList();
+			if (targetRecordList == null) {
+				return;
+			}
+			if (!targetRecordList.isEmpty()) {
+				ttTarget.add(targetRecordList.get(this.targetIndex));
+				
+				JsonObject targetRecordJso = new JsonObject();
+				targetRecordJso.put("ttTarget", ttTarget);
+				request.setParam("targetRecord", targetRecordJso);
+			}
+			
+			JsonArray ttDropped = new JsonArray();
+			List<Record> recordList = dsDef.getRecordList();
+			if (recordList == null) {
+				return;
+			}
+			for (int droppedIndex : this.droppedIndices) {
+				ttDropped.add(recordList.get(droppedIndex));
+			}
 			JsonObject droppedRecords = new JsonObject();
 			droppedRecords.put("ttDropped", ttDropped);
 			request.setParam("droppedRecords", droppedRecords);
