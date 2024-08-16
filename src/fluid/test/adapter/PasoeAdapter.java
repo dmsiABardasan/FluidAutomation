@@ -33,7 +33,7 @@ public class PasoeAdapter extends AppServerAdapter{
 		setContextId(contextId);
 	}
 	
-	private static synchronized String loginPost(RestAdapter rest, String host, String user, String password, String extra) throws IOException {
+	protected synchronized String loginPost(RestAdapter rest, String host, String user, String password, String extra) throws IOException {
 		final String url = host + "/static/auth/j_spring_security_check";
 		final CustomCookieJar cookieJar = rest.getCookieJar();
 		
