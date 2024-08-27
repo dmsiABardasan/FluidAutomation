@@ -796,7 +796,7 @@ public class Step {
 		
 		StringBuilder strBldr = new StringBuilder();
 		try {
-			if (child.getService().equals(activityDefRes.getService()) && LaunchContractType.SEARCH == child.getType()) {
+			if (child.getActivityReference() != null && child.getService().equals(activityDefRes.getService()) && LaunchContractType.SEARCH == child.getType()) {
 				activityDefRes.processResponse(loadActivityRequest);
 				setResponse(loadActivityRequest);
 				strBldr.append("Searched");
