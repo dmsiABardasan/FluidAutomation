@@ -326,7 +326,7 @@ public final class ActivityDefinitionUtils {
 			
 			if (runSave) {
 				SaveDataRequest saveDataRequest = new SaveDataRequest();
-				saveDataRequest.setParam("eventCtrlName", "button."+field);
+				saveDataRequest.setParam("eventCtrlName", table+"."+field);
 				oResponse = saveData(activityDef, saveDataRequest, false, false);
 			} else {
 				oResponse = activityDef.validateField(table, field, fluidEvent);

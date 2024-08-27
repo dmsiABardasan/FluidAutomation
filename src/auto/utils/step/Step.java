@@ -24,6 +24,7 @@ import fluid.test.adapter.AppServerAdapter;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.data.ActivityDefinitionResponseCascader;
 import fluid.test.data.ChildActivityDefinition;
+import fluid.test.data.ChildActivityDefinition.LaunchContractType;
 import fluid.test.data.DataSourceDefinition;
 import fluid.test.data.ViewDefinition;
 import fluid.test.message.AbstractMessage;
@@ -795,36 +796,42 @@ public class Step {
 		
 		StringBuilder strBldr = new StringBuilder();
 		try {
-			if (activityDefRes.getModel() == null || !child.getService().equals(activityDefRes.getService())) {
-				if (!child.getService().equals(activityDefRes.getService())) {
-					activityDefRes.setService(child.getService());
-					strBldr.append("Replaced \"" + activityDefRes.getModel().getActivity() + "\"");
+			if (child.getService().equals(activityDefRes.getService()) && LaunchContractType.SEARCH == child.getType()) {
+				activityDefRes.processResponse(loadActivityRequest);
+				setResponse(loadActivityRequest);
+				strBldr.append("Searched");
+			} else {
+				if (activityDefRes.getModel() == null || !child.getService().equals(activityDefRes.getService())) {
+					if (!child.getService().equals(activityDefRes.getService())) {
+						activityDefRes.setService(child.getService());
+						strBldr.append("Replaced \"" + activityDefRes.getModel().getActivity() + "\"");
+					}
+					AppServerAdapter.getInstance().loadActivityDef(activityDefRes, loadActivityRequest);
+					setResponse(activityDefRes.getModel());
+					if (strBldr.toString() != null && !strBldr.toString().isEmpty()) {
+						strBldr.append(", launched");
+					}else {
+						strBldr.append("Launched");
+					}
 				}
-				AppServerAdapter.getInstance().loadActivityDef(activityDefRes, loadActivityRequest);
-				setResponse(activityDefRes.getModel());
-				if (strBldr.toString() != null && !strBldr.toString().isEmpty()) {
-					strBldr.append(", launched");
-				}else {
-					strBldr.append("Launched");
-				}
-			}
-			if (loadDataRequest != null) {
-				// Handles dashboards being loaded from buttonclicks
-				if (ActivityTypeEnum.DASHBOARD == ActivityTypeEnum
-						.getActivityType(activityDefRes.getModel().getActivityType())) {
-					childActivityDefList.addAll(dashboardHandling(
-							activityDefRes,
-							procedure,
-							loadDataRequest.getLoadRowid(),
-							haltOnChildActivity, clickCrudButtons));
-				}
-				
-				LoadDataResponse loadDataResponse = AppServerAdapter.getInstance().loadData(activityDefRes, loadDataRequest);
-				setResponse(loadDataResponse);
-				if (strBldr.toString() != null && !strBldr.toString().trim().isEmpty()) {
-					strBldr.append(" and loaded");
-				}else {
-					strBldr.append("Loaded");
+				if (loadDataRequest != null) {
+					// Handles dashboards being loaded from buttonclicks
+					if (ActivityTypeEnum.DASHBOARD == ActivityTypeEnum
+							.getActivityType(activityDefRes.getModel().getActivityType())) {
+						childActivityDefList.addAll(dashboardHandling(
+								activityDefRes,
+								procedure,
+								loadDataRequest.getLoadRowid(),
+								haltOnChildActivity, clickCrudButtons));
+					}
+					
+					LoadDataResponse loadDataResponse = AppServerAdapter.getInstance().loadData(activityDefRes, loadDataRequest);
+					setResponse(loadDataResponse);
+					if (strBldr.toString() != null && !strBldr.toString().trim().isEmpty()) {
+						strBldr.append(" and loaded");
+					}else {
+						strBldr.append("Loaded");
+					}
 				}
 			}
 		} catch (Throwable ex) {

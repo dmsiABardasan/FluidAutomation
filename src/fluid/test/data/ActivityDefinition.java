@@ -19,6 +19,7 @@ import java.util.Set;
 
 import auto.utils.fluid.FluidEvent;
 import fluid.test.adapter.AppServerAdapter;
+import fluid.test.data.ChildActivityDefinition.LaunchContractType;
 import fluid.test.json.JsonArray;
 import fluid.test.json.JsonObject;
 import fluid.test.message.AbstractMessage;
@@ -197,6 +198,32 @@ public class ActivityDefinition {
 
    protected void setModel(LoadActivityResponse model) {
 	   this.model = model;
+   }
+   
+   public ChildActivityDefinition launchRecentSelectionService() {
+	   ChildActivityDefinition recentSelectionServiceActivity = null;
+	   
+	   String recentSectionService = Objects.toString(this.model.getViewDetails().get("recentSectionService"), null);
+	   if (recentSectionService != null) {
+		   recentSelectionServiceActivity = ChildActivityDefinition.newInstance(this);
+		   recentSelectionServiceActivity.setType(LaunchContractType.LOADDATA);
+		   recentSelectionServiceActivity.setService(recentSectionService);
+		   
+		   LoadActivityRequest loadActivityRequest = new LoadActivityRequest();
+		   loadActivityRequest.setParam("activity", this.model.getActivity());
+		   loadActivityRequest.setParam("parentActivity", this.model.getActivity());
+		   
+		   LoadDataRequest loadDataRequest = new LoadDataRequest(LoadDataModeEnum.VIEW);
+		   loadDataRequest.setParam("activity", this.model.getActivity());
+		   loadDataRequest.setParam("parentActivity", this.model.getActivity());
+		   
+		   recentSelectionServiceActivity.setLastLoadActivityRequest(loadActivityRequest);
+		   recentSelectionServiceActivity.setLastLoadDataRequest(loadDataRequest);
+		   
+		   ChildActivityDefinition.loadChildActivity(recentSelectionServiceActivity);
+	   }
+	   
+	   return recentSelectionServiceActivity;
    }
    
    public void initializeModel(LoadActivityResponse loadActivityResponse) throws Throwable  {
