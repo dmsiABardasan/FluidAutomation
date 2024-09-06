@@ -805,7 +805,9 @@ public class ActivityDefinition {
                   String fieldList = req.substring(req.indexOf("(") + 1, req.indexOf(")"));
                   String[] fieldArray = fieldList.split("\\|");
                   JsonObject requiredDataTable = getRequiredDataTable(table, fieldArray);
-                  valRequest.setParam(table, requiredDataTable);
+                  if (requiredDataTable != null) {
+                	  valRequest.setParam(table, requiredDataTable);
+                  }
                } else if (req.equalsIgnoreCase("eventName")) {
                   valRequest.setCtrlProp(req, CtrlPropEnum.SCREENVALUE, event.getEventType().getValue());
                } else { // single field value required
@@ -909,7 +911,9 @@ public class ActivityDefinition {
    }
 
    public JsonObject getRequiredDataTable(String tableName, String[] fieldArray) {
-      
+	   
+	  if (getDataSourceDefinitionMap().get(tableName) == null) return null;
+	   
       List<Record> records = getDataSourceDefinitionMap().get(tableName).getRecordList();
       
       JsonArray jsArr = new JsonArray();

@@ -968,7 +968,9 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 								String fieldList = keyValue[1].substring(keyValue[1].indexOf("(") + 1, keyValue[1].indexOf(")"));
 								String[] fieldArray = fieldList.split("\\|");
 								JsonObject requiredDataTable = getParentActivityDefinition().getRequiredDataTable(table, fieldArray);
-								getInjectedParams().setParam(keyValue[0], requiredDataTable);
+								if (requiredDataTable != null) {
+									getInjectedParams().setParam(keyValue[0], requiredDataTable);
+								}
 							}else { // single field value required
 								value = findParentActivityValue(keyValue[1]);
 								getInjectedParams().setParam(keyValue[0], value);
