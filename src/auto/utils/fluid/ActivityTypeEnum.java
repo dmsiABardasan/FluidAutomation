@@ -10,7 +10,8 @@ public enum ActivityTypeEnum {
 	URL_DISPLAY ("urlDisplay"),
 	IMG_DISPLAY ("imgDisplay"),
 	POPUP_WINDOW ("popupWindow"),
-	POPUP_FINDER ("popupFinder");
+	POPUP_FINDER ("popupFinder"),
+	POPUP_SLIDE("popupSlide");
 	
 	private String value;
 	
