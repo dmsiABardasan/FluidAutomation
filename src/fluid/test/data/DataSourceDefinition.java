@@ -97,27 +97,32 @@ public class DataSourceDefinition {
       return this.fieldDefinitionMap.get(fieldName);
    }
 
-   public void updateData(Record updatedRecord) {
-      String primKeyValue = updatedRecord.getFieldValueAsString(primaryKey);
-      boolean found = false;
-      for (int i = 0; i < recordList.size(); i++) {
-         Record record = recordList.get(i);
-         if (primKeyValue.equalsIgnoreCase(record.getFieldValueAsString(primaryKey))) {
-        	
-        	record.putAll(updatedRecord);
-        	if (trackingChanges == null && !AppServerAdapter.getInstance().allowOrphanFields()) {
-        		record.keySet().retainAll(getFieldDefinitionMap().keySet());
-        	}
-        	
-            currentRow = i;
-            found = true;
-            break;
-         }
-      }
-      if (!found) {
-         addData(updatedRecord);
-      }
-   }
+	public void updateData(Record updatedRecord) {
+		if (primaryKey != null) {
+			String primKeyValue = updatedRecord.getFieldValueAsString(primaryKey);
+
+			boolean found = false;
+			for (int i = 0; i < recordList.size(); i++) {
+				Record record = recordList.get(i);
+				if (primKeyValue.equalsIgnoreCase(record.getFieldValueAsString(primaryKey))) {
+
+					record.putAll(updatedRecord);
+					if (trackingChanges == null && !AppServerAdapter.getInstance().allowOrphanFields()) {
+						record.keySet().retainAll(getFieldDefinitionMap().keySet());
+					}
+
+					currentRow = i;
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				addData(updatedRecord);
+			}
+		} else {
+			addData(updatedRecord);
+		}
+	}
 
 	private void addData(Record record) {
 		Record newRecord = new Record(record);
@@ -133,16 +138,20 @@ public class DataSourceDefinition {
 	public void refreshData(List<Record> refreshRecords) {
 		List<Record> newRecords = new ArrayList<Record>();
 		if (refreshRecords != null) {
-			for (Record refreshRecord : refreshRecords) {
-				String primKeyValue = refreshRecord.getFieldValueAsString(primaryKey);
-				for (Record record : recordList) {
-					if (primKeyValue.equalsIgnoreCase(record.getFieldValueAsString(primaryKey))) {
-						record.putAll(refreshRecord);
-						refreshRecord = record;
-						break;
+			if (primaryKey != null) {
+				for (Record refreshRecord : refreshRecords) {
+					String primKeyValue = refreshRecord.getFieldValueAsString(primaryKey);
+					for (Record record : recordList) {
+						if (primKeyValue.equalsIgnoreCase(record.getFieldValueAsString(primaryKey))) {
+							record.putAll(refreshRecord);
+							refreshRecord = record;
+							break;
+						}
 					}
+					newRecords.add(refreshRecord);
 				}
-				newRecords.add(refreshRecord);
+			} else {
+				newRecords.addAll(refreshRecords);
 			}
 		}
 		setRecordList(newRecords);
