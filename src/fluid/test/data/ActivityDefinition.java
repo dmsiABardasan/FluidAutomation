@@ -1041,6 +1041,8 @@ public class ActivityDefinition {
 	                  } else {
 	                     record.setFieldValue(fieldName, screenValue);
 	                  }
+               } else if (AppServerAdapter.getInstance().allowOrphanFields()) {
+            	   record.setFieldValue(fieldName, screenValue);
                }
                
       }
