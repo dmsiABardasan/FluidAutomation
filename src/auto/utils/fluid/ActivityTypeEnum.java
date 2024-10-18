@@ -11,7 +11,8 @@ public enum ActivityTypeEnum {
 	IMG_DISPLAY ("imgDisplay"),
 	POPUP_WINDOW ("popupWindow"),
 	POPUP_FINDER ("popupFinder"),
-	POPUP_SLIDE("popupSlide");
+	POPUP_SLIDE("popupSlide"),
+	INCLUDE("include");
 	
 	private String value;
 	

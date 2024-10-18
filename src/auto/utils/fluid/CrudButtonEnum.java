@@ -3,9 +3,11 @@ package auto.utils.fluid;
 import static org.junit.Assert.fail;
 
 import auto.utils.ActivityDefinitionUtils;
+import fluid.test.adapter.AppServerAdapter;
 import fluid.test.data.ActivityDefinition;
 import fluid.test.message.GetResultsRequest;
 import fluid.test.message.LoadDataModeEnum;
+import fluid.test.message.LoadDataRequest;
 import fluid.test.message.PresentationMessage;
 
 /**
@@ -88,10 +90,18 @@ public enum CrudButtonEnum {
 				//this$static.editNewDetail('EDIT', this$static.searchGridResults);
 /*				activityDef.getResultsDataSourceDefinition().getCurrentRecord()
 				.getFieldValueAsString(activityDef.getResultsDataSourceDefinition().getPrimaryKey());*/
-				oResponse = ActivityDefinitionUtils.loadData(activityDef, LoadDataModeEnum.EDIT,
-						activityDef.getLastLoadDataRequest() != null
-								? activityDef.getLastLoadDataRequest().getLoadRowid()
-								: "");
+				try {
+					LoadDataRequest loadDataRequest = activityDef.getLastLoadDataRequest() != null
+							? new LoadDataRequest(activityDef.getLastLoadDataRequest().serializeMessage())
+							: new LoadDataRequest(LoadDataModeEnum.EDIT);
+					loadDataRequest.setLoadMode(LoadDataModeEnum.EDIT);
+					
+					oResponse = AppServerAdapter.getInstance().loadData(activityDef, loadDataRequest);
+					
+				} catch (Throwable e) {
+					fail("Error constructing button.Edit loadDataRequest: " + e.getMessage());
+					throw new RuntimeException(e);
+				}
 				break;
 			case COPY:
 				if (!activityDef.getResultsDataSourceDefinition().getRecordList().isEmpty()) {

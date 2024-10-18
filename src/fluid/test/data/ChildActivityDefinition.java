@@ -627,7 +627,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			buildInjectedParams(launchContractString);
 			
 			if (getReturnProperties() != null) {
-				subActivityRequest.setParam("returnCriteria", contract);
+				subActivityRequest.setParam("returnCriteria", getReturnProperties());
 			}
 			
 			final String contract = getContract();
@@ -863,14 +863,16 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			
 			String[] tableField = getTableField().split("\\.");
 			
+			Set<String[][]> asyncValidations = new HashSet<>();
+			
 			if (loadDataResponse.hasParam("finderReturn")) {
 				String table = tableField[0];
 				String field = tableField[1];
 				
 				Object value = loadDataResponse.getParamAsObject("finderReturn");
 				parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-				parentActivityDef.validateAsynchronously(new String[][] {{table,field}});
-			} else
+				asyncValidations.add(new String[][] {{table,field}});
+			} /*else*/
 			
 			if (returnProps != null && !returnProps.isEmpty()) {
 				String[] pairs = returnProps.split("\\,");
@@ -889,12 +891,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 						String field = tableKeySplit[1];
 						
 						Object value = loadDataResponse.getParamAsObject(tableKey[1]);
+						if (value == null) {
+							value = tableKey[1];
+						}
 						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
 						asyncTableFields[i][0] = table;
 						asyncTableFields[i][1] = field;
 					}
 				}
-				parentActivityDef.validateAsynchronously(asyncTableFields);
+				asyncValidations.add(asyncTableFields);
 			} 
 			
 			// Fluid's old style of the finder result process, with the same logic in all it's glory.
@@ -905,10 +910,28 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					if (CtrlPropEnum.SCREENVALUE == entry.getKey().getProp()) {
 						Object value = entry.getValue();
 						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-						parentActivityDef.validateAsynchronously(new String[][] {{table,field}});
+						asyncValidations.add(new String[][] {{table,field}});
 					}
 				}
 			}
+			
+			int x = 0;
+			for (String[][] asyncArray : asyncValidations) {
+				x += asyncArray.length;
+			}
+			String[][] asyncValidationsArr = new String[x][2];
+			
+			int i = 0;
+			for (String[][] asyncArray : asyncValidations) {
+				for (String[] asyncPair : asyncArray) {
+					asyncValidationsArr[i][0] = asyncPair[0];
+					asyncValidationsArr[i][1] = asyncPair[1];
+					i++;
+				}
+			}
+			
+			parentActivityDef.validateAsynchronously(asyncValidationsArr);
+			
 		} else if (getType() == LaunchContractType.LOADDATA) {
 			SaveDataResponse saveDataResponse = (SaveDataResponse) response;
 			
