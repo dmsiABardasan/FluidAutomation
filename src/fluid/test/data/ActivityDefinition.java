@@ -922,7 +922,9 @@ public class ActivityDefinition {
          for (int i = 0; i < records.size(); i++) {
             Record record = records.get(i);
             if (fieldArray.length == 1 && fieldArray[0].equalsIgnoreCase("*")) {
-               jsArr.add(record);
+            	Record trimRecord = new Record(record);
+            	trimRecord.keySet().retainAll(getDataSourceDefinitionMap().get(tableName).getFieldDefinitionMap().keySet());
+               jsArr.add(trimRecord);
             } else {
                Record newRecord = new Record();
                for (String fieldName : fieldArray) {

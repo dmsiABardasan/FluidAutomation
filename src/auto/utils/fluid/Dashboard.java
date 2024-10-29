@@ -87,8 +87,12 @@ public abstract class Dashboard extends FluidActivity {
 			
 			loadActivityRequest.setCtrlProp("dummy", CtrlPropEnum.LOADDATA, maintRowid);
 			loadActivityRequest.setParam("parentActivity", activityDef.getModel().getActivity());
+			loadDataRequest.setParam("parentActivity", activityDef.getModel().getActivity());
 			
 			childActivityDefinition.resolveLaunchActivity(loadActivityRequest, ",," + service);
+			
+			childActivityDefinition.setLastLoadActivityRequest(loadActivityRequest);
+			childActivityDefinition.setLastLoadDataRequest(loadDataRequest);
 			
 			ActivityDefinitionUtils.loadActivity(childActivityDefinition, loadActivityRequest, service);
 			ActivityDefinitionUtils.loadData(childActivityDefinition, loadDataRequest, maintRowid);
