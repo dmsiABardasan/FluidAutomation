@@ -70,6 +70,8 @@ public abstract class Dashboard extends FluidActivity {
 	public static Set<ChildActivityDefinition> explodeDashboard(ActivityDefinition activityDef, String maintRowid){
 		Set<String> services = explodeDashboardServices(activityDef);
 		
+		final boolean substitute = activityDef.getResultsDataSourceDefinition() == null;
+		
 		Set<ChildActivityDefinition> activityList = new LinkedHashSet<ChildActivityDefinition>();
 		for (String service: services) {
 			ChildActivityDefinition childActivityDefinition = ChildActivityDefinition.newInstance(activityDef); 
@@ -83,6 +85,13 @@ public abstract class Dashboard extends FluidActivity {
 				childActivityDefinition.setInjectedParams(injectedParams);
 				loadActivityRequest.getMoMsgParams().putAll(injectedParams.getMoMsgParams());
 				loadDataRequest.getMoMsgParams().putAll(injectedParams.getMoMsgParams());
+			}
+			
+			if (substitute) {
+				loadActivityRequest.setParam("activity", activityDef.getModel().getActivity());
+				loadActivityRequest.setParam("activityType", activityDef.getModel().getActivityType());
+				loadDataRequest.setParam("activity", activityDef.getModel().getActivity());
+				loadDataRequest.setParam("activityType", activityDef.getModel().getActivityType());
 			}
 			
 			loadActivityRequest.setCtrlProp("dummy", CtrlPropEnum.LOADDATA, maintRowid);
