@@ -804,7 +804,7 @@ public class ActivityDefinition {
                   String table = req.substring(1, req.indexOf("("));
                   String fieldList = req.substring(req.indexOf("(") + 1, req.indexOf(")"));
                   String[] fieldArray = fieldList.split("\\|");
-                  JsonObject requiredDataTable = getRequiredDataTable(table, fieldArray);
+                  JsonObject requiredDataTable = getRequiredDataTable(table, fieldArray, false);
                   if (requiredDataTable != null) {
                 	  valRequest.setParam(table, requiredDataTable);
                   }
@@ -910,7 +910,7 @@ public class ActivityDefinition {
       return fieldValue;
    }
 
-   public JsonObject getRequiredDataTable(String tableName, String[] fieldArray) {
+   public JsonObject getRequiredDataTable(String tableName, String[] fieldArray, boolean trim) {
 	   
 	  if (getDataSourceDefinitionMap().get(tableName) == null) return null;
 	   
@@ -922,9 +922,11 @@ public class ActivityDefinition {
          for (int i = 0; i < records.size(); i++) {
             Record record = records.get(i);
             if (fieldArray.length == 1 && fieldArray[0].equalsIgnoreCase("*")) {
-            	Record trimRecord = new Record(record);
-            	trimRecord.keySet().retainAll(getDataSourceDefinitionMap().get(tableName).getFieldDefinitionMap().keySet());
-               jsArr.add(trimRecord);
+               if (trim) {
+                  record = new Record(record); // Prevent unwanted mutation
+                  record.keySet().retainAll(getDataSourceDefinitionMap().get(tableName).getFieldDefinitionMap().keySet());
+               }
+               jsArr.add(record);
             } else {
                Record newRecord = new Record();
                for (String fieldName : fieldArray) {
