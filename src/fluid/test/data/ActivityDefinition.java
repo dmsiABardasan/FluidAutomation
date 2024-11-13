@@ -1013,7 +1013,7 @@ public class ActivityDefinition {
 		                    	try {
 									record.setFieldValue(fieldName, df.format(new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat()).parse(screenValue)));
 								} catch (ParseException e2) {
-			                        record.setFieldValue(fieldName, screenValue);
+			                        record.setFieldValue(fieldName, null);
 								}
 		                     }
 	                	  }
