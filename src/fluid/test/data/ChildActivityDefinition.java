@@ -610,11 +610,13 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		
 		final String launchActivity;
 		if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
+			setType(LaunchContractType.LOADDATA);
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY);
 		} else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER) != null) {
 			setType(LaunchContractType.SEARCH);
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER);
 		} else {
+			setType(LaunchContractType.LOADDATA);
 			launchActivity = null;
 		}
 		
@@ -670,7 +672,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					throw new IllegalArgumentException("Invalid ChildActivityDefinition type");
 			}
 		} else {
-			setType(LaunchContractType.LOADDATA);
 			resolveLaunchActivity(subActivityRequest, launchActivity);
 		}
 		
