@@ -511,7 +511,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 				case ADVSEARCH:
 					searchTable = "advSearch";
 				case SEARCH:
-					setType(LaunchContractType.SEARCH);
 					if (searchTable == null) {
 						searchTable = "search";
 					}
@@ -522,7 +521,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					buildLaunchContract(contract);
 					break;
 				case LOADDATA:
-					setType(LaunchContractType.LOADDATA);
 					buildLaunchContract(contract);
 					break;
 				default: 
@@ -863,12 +861,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			LoadDataResponse loadDataResponse = (LoadDataResponse) response;
 			
 			String[] tableField = getTableField().split("\\.");
+			boolean finderReturnApplied = false;
 			
 			Set<String[][]> asyncValidations = new HashSet<>();
 			
 			if (loadDataResponse.hasParam("finderReturn")) {
 				String table = tableField[0];
 				String field = tableField[1];
+				
+				finderReturnApplied = true;
 				
 				Object value = loadDataResponse.getParamAsObject("finderReturn");
 				parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
@@ -891,6 +892,10 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 						String table = tableKeySplit[0];
 						String field = tableKeySplit[1];
 						
+						if (finderReturnApplied) {
+							continue; // Already applied (See Fluid FinderPresenter.processResponse(LoadDataResponse))
+						}
+						
 						Object value = loadDataResponse.getParamAsObject(tableKey[1]);
 						if (value == null) {
 							value = tableKey[1];
@@ -903,7 +908,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 				asyncValidations.add(asyncTableFields);
 			} 
 			
-			// Fluid's old style of the finder result process, with the same logic in all it's glory.
+			// Fluid's old style of the finder result process, with the same logic in all its glory.
 			if (loadDataResponse.hasCtrlProps()) {
 				String table = tableField[0];
 				String field = tableField[1];
