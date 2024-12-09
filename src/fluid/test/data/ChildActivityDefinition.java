@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import auto.utils.fluid.ActivityTypeEnum;
 import fluid.test.adapter.AppServerAdapter;
 import fluid.test.json.JsonObject;
 import fluid.test.message.CtrlProp;
@@ -608,17 +609,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		
 		final String launchActivity;
 		if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
-			setType(LaunchContractType.LOADDATA);
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY);
 		} else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER) != null) {
-			setType(LaunchContractType.SEARCH);
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER);
 		} else {
-			setType(LaunchContractType.LOADDATA);
 			launchActivity = null;
 		}
 		
 		LoadActivityRequest subActivityRequest = new LoadActivityRequest();
+		resolveLaunchActivity(subActivityRequest, launchActivity);
 		
 		String launchContractString = getParentActivityDefinition().getModel().getCtrlProp(tableField, CtrlPropEnum.LAUNCHCONTRACT);
 		
@@ -635,7 +634,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			switch (getType()) {
 				case SEARCH:
 					subActivityRequest.getCtrlProperties().putAll(getInjectedParams().getCtrlProperties());
-					resolveLaunchActivity(subActivityRequest, launchActivity);
 					break;
 				case LOADACTIVITYDEF:
 					String ipService = returnContractIdentifier(contract);
@@ -644,7 +642,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					loadActivityDefRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					
-					resolveLaunchActivity(subActivityRequest, launchActivity);
 					setService(ipService);
 					
 					loadActivityDefRequest.setParam("parentActivity", getParentActivityName());
@@ -660,8 +657,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					loadDataRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					
-					resolveLaunchActivity(subActivityRequest, launchActivity);
-					
 					loadDataRequest.setParam("parentActivity", getParentActivityName());
 					
 					setLastLoadDataRequest(loadDataRequest);
@@ -669,8 +664,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 				default: 
 					throw new IllegalArgumentException("Invalid ChildActivityDefinition type");
 			}
-		} else {
-			resolveLaunchActivity(subActivityRequest, launchActivity);
 		}
 		
 		subActivityRequest.setParam("parentActivity", getParentActivityName());
@@ -722,7 +715,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		}
 		
 		String[] split = launchActivity.split("\\,");
-		//String activityType = split[0]; // Ain't nobody need this
+		String activityType = split[0];
 		String tabId = split[1];
 		String fluidService = split[2];
 		
@@ -735,6 +728,12 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			getParentActivityDefinition().getChildSet().add(this);  //if it isn't pointing to anything, it's a legitimate child
 		}
 		loadActivityRequest.setActivity(tabId);
+		
+		if (ActivityTypeEnum.POPUP_FINDER == ActivityTypeEnum.getActivityType(activityType)) {
+			setType(LaunchContractType.SEARCH);
+		} else {
+			setType(LaunchContractType.LOADDATA);
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -843,126 +842,123 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		}
 	}
 	
-	/**
-	 * Puts the values that are in the given response to the parent ActivityDefinition
-	 * as stated in "returnProperties" or otherwise.
-	 * 
-	 * @param response
-	 * @throws Throwable
-	 */
-	public final void saveResponseToParent(PresentationMessage response) throws Throwable {
+	public final void saveResponseToParent(LoadDataResponse response) throws Throwable {
 		if (mlDebugTrace) {
 			System.err.println("ChildActivityDefinition (incoming) response: " + response.serializeMessage());
 		}
 		ActivityDefinition parentActivityDef = getParentActivityDefinition();
 		String returnProps = getReturnProperties();
 		
-		if (getType() == LaunchContractType.SEARCH) {
-			LoadDataResponse loadDataResponse = (LoadDataResponse) response;
+		LoadDataResponse loadDataResponse = (LoadDataResponse) response;
+		
+		String[] tableField = getTableField().split("\\.");
+		boolean finderReturnApplied = false;
+		
+		Set<String[][]> asyncValidations = new HashSet<>();
+		
+		if (loadDataResponse.hasParam("finderReturn")) {
+			String table = tableField[0];
+			String field = tableField[1];
 			
-			String[] tableField = getTableField().split("\\.");
-			boolean finderReturnApplied = false;
+			finderReturnApplied = true;
 			
-			Set<String[][]> asyncValidations = new HashSet<>();
+			Object value = loadDataResponse.getParamAsObject("finderReturn");
+			parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+			asyncValidations.add(new String[][] {{table,field}});
+		} /*else*/ // Both need to be accounted for
+		
+		if (returnProps != null && !returnProps.isEmpty()) {
+			String[] pairs = returnProps.split("\\,");
 			
-			if (loadDataResponse.hasParam("finderReturn")) {
-				String table = tableField[0];
-				String field = tableField[1];
+			String[][] asyncTableFields = new String[pairs.length][2];
+			
+			for (int i = 0 ; i < pairs.length ; i ++) {
+				String pair = pairs[i];
+				String[] tableKey = pair.split("=");
 				
-				finderReturnApplied = true;
-				
-				Object value = loadDataResponse.getParamAsObject("finderReturn");
-				parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-				asyncValidations.add(new String[][] {{table,field}});
-			} /*else*/
-			
-			if (returnProps != null && !returnProps.isEmpty()) {
-				String[] pairs = returnProps.split("\\,");
-				
-				String[][] asyncTableFields = new String[pairs.length][2];
-				
-				for (int i = 0 ; i < pairs.length ; i ++) {
-					String pair = pairs[i];
-					String[] tableKey = pair.split("=");
-					
-					if (tableKey[0].equals("saveSearchCriteria") && tableKey[1].startsWith("y")) {
-						// Implementation of finders remembering assigned values
-					} else {
-						String[] tableKeySplit = tableKey[0].split("\\.");
-						String table = tableKeySplit[0];
-						String field = tableKeySplit[1];
-						
-						if (finderReturnApplied) {
-							continue; // Already applied (See Fluid FinderPresenter.processResponse(LoadDataResponse))
-						}
-						
-						Object value = loadDataResponse.getParamAsObject(tableKey[1]);
-						if (value == null) {
-							value = tableKey[1];
-						}
-						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-						asyncTableFields[i][0] = table;
-						asyncTableFields[i][1] = field;
-					}
-				}
-				asyncValidations.add(asyncTableFields);
-			} 
-			
-			// Fluid's old style of the finder result process, with the same logic in all its glory.
-			if (loadDataResponse.hasCtrlProps()) {
-				String table = tableField[0];
-				String field = tableField[1];
-				for (Map.Entry<CtrlPropPair, String> entry : loadDataResponse.getCtrlProperties().entrySet()) {
-					if (CtrlPropEnum.SCREENVALUE == entry.getKey().getProp()) {
-						Object value = entry.getValue();
-						parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-						asyncValidations.add(new String[][] {{table,field}});
-					}
-				}
-			}
-			
-			int x = 0;
-			for (String[][] asyncArray : asyncValidations) {
-				x += asyncArray.length;
-			}
-			String[][] asyncValidationsArr = new String[x][2];
-			
-			int i = 0;
-			for (String[][] asyncArray : asyncValidations) {
-				for (String[] asyncPair : asyncArray) {
-					asyncValidationsArr[i][0] = asyncPair[0];
-					asyncValidationsArr[i][1] = asyncPair[1];
-					i++;
-				}
-			}
-			
-			parentActivityDef.validateAsynchronously(asyncValidationsArr);
-			
-		} else if (getType() == LaunchContractType.LOADDATA) {
-			SaveDataResponse saveDataResponse = (SaveDataResponse) response;
-			
-			if (returnProps != null && !returnProps.isEmpty()) {
-				String[] pairs = returnProps.split("\\,");
-				
-				String[][] asyncTableFields = new String[pairs.length][2];
-				
-				for (int i = 0 ; i < pairs.length ; i++ ) {
-					String pair = pairs[i];
-					String[] tableKey = pair.split("=");
+				if (tableKey[0].equals("saveSearchCriteria") && tableKey[1].startsWith("y")) {
+					// Implementation of finders remembering assigned values
+				} else {
 					String[] tableKeySplit = tableKey[0].split("\\.");
-					
 					String table = tableKeySplit[0];
 					String field = tableKeySplit[1];
-					Object value = saveDataResponse.getParamAsObject(tableKey[1]);
 					
+					if (finderReturnApplied) {
+						continue; // Already applied (See Fluid FinderPresenter.processResponse(LoadDataResponse))
+					}
+					
+					Object value = loadDataResponse.getParamAsObject(tableKey[1]);
+					if (value == null) {
+						value = tableKey[1];
+					}
 					parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
 					asyncTableFields[i][0] = table;
 					asyncTableFields[i][1] = field;
 				}
-				parentActivityDef.validateAsynchronously(asyncTableFields);
-			} else {
-				parentActivityDef.processResponse(saveDataResponse); 
 			}
+			asyncValidations.add(asyncTableFields);
+		} 
+		
+		// Fluid's old style of the finder result process, with the same logic in all its glory.
+		if (loadDataResponse.hasCtrlProps()) {
+			String table = tableField[0];
+			String field = tableField[1];
+			for (Map.Entry<CtrlPropPair, String> entry : loadDataResponse.getCtrlProperties().entrySet()) {
+				if (CtrlPropEnum.SCREENVALUE == entry.getKey().getProp()) {
+					Object value = entry.getValue();
+					parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+					asyncValidations.add(new String[][] {{table,field}});
+				}
+			}
+		}
+		
+		int x = 0;
+		for (String[][] asyncArray : asyncValidations) {
+			x += asyncArray.length;
+		}
+		String[][] asyncValidationsArr = new String[x][2];
+		
+		int i = 0;
+		for (String[][] asyncArray : asyncValidations) {
+			for (String[] asyncPair : asyncArray) {
+				asyncValidationsArr[i][0] = asyncPair[0];
+				asyncValidationsArr[i][1] = asyncPair[1];
+				i++;
+			}
+		}
+		
+		parentActivityDef.validateAsynchronously(asyncValidationsArr);
+	}
+	
+	public final void saveResponseToParent(SaveDataResponse response) throws Throwable {
+		if (mlDebugTrace) {
+			System.err.println("ChildActivityDefinition (incoming) response: " + response.serializeMessage());
+		}
+		ActivityDefinition parentActivityDef = getParentActivityDefinition();
+		String returnProps = getReturnProperties();
+		
+		SaveDataResponse saveDataResponse = (SaveDataResponse) response;
+		if (returnProps != null && !returnProps.isEmpty()) {
+			String[] pairs = returnProps.split("\\,");
+			
+			String[][] asyncTableFields = new String[pairs.length][2];
+			
+			for (int i = 0 ; i < pairs.length ; i++ ) {
+				String pair = pairs[i];
+				String[] tableKey = pair.split("=");
+				String[] tableKeySplit = tableKey[0].split("\\.");
+				
+				String table = tableKeySplit[0];
+				String field = tableKeySplit[1];
+				Object value = saveDataResponse.getParamAsObject(tableKey[1]);
+				
+				parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
+				asyncTableFields[i][0] = table;
+				asyncTableFields[i][1] = field;
+			}
+			parentActivityDef.validateAsynchronously(asyncTableFields);
+		} else {
+			parentActivityDef.processResponse(saveDataResponse); 
 		}
 	}
 

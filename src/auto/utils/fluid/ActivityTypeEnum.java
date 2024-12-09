@@ -45,9 +45,6 @@ public enum ActivityTypeEnum {
 				break;
 			}
 		}
-		if (foundActivityType == null) {
-			throw new IllegalArgumentException("Invalid value for Enum");
-		}
 		
 		return foundActivityType;
 	}
