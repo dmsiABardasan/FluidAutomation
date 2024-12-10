@@ -98,7 +98,7 @@ public abstract class Dashboard extends FluidActivity {
 			loadActivityRequest.setParam("parentActivity", activityDef.getModel().getActivity());
 			loadDataRequest.setParam("parentActivity", activityDef.getModel().getActivity());
 			
-			childActivityDefinition.resolveLaunchActivity(loadActivityRequest, ",," + service);
+			childActivityDefinition.resolveLaunchActivity(loadActivityRequest, "", service);
 			
 			childActivityDefinition.setLastLoadActivityRequest(loadActivityRequest);
 			childActivityDefinition.setLastLoadDataRequest(loadDataRequest);

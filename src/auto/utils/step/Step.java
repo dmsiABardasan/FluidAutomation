@@ -858,7 +858,7 @@ public class Step {
 		
 		childActivityDefList.addAll(childActivities);
 		
-		getLabel().add("Dashboard launched and loaded: " + activitiesToNameString(childActivities));
+		getLabel().add("Dashboard launched and loaded \"" + activitiesToNameString(childActivities) + "\"");
 		
 		for (ChildActivityDefinition childActivityDef : childActivities) {
 			

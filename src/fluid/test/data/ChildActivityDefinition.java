@@ -607,20 +607,31 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		setInjectedParams(new PresentationMessage());
 		setReturnProperties(null);
 		
-		final String launchActivity;
+		String launchActivity;
 		if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY);
 		} else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER) != null) {
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER);
 		} else {
-			launchActivity = null;
+			throw new NullPointerException("The " + tableField +" tablefield has neither a BUTTONACTIVITY nor LOOKUPFINDER CtrlProp defined. Are you sure this field is a launchable?");
+		}
+		
+		if (launchActivity.startsWith(VALUE_OF_FUNCTION)) {
+			launchActivity = getValueOf(launchActivity);
+		}
+		String[] launchActivitySplit = launchActivity.split("\\,");
+		String activityType = launchActivitySplit[0];
+		String tabId = launchActivitySplit[1];
+		String fluidService = launchActivitySplit[2];
+		
+		if (ActivityTypeEnum.POPUP_FINDER == ActivityTypeEnum.getActivityType(activityType)) {
+			setType(LaunchContractType.SEARCH);
+		} else {
+			setType(LaunchContractType.LOADDATA);
 		}
 		
 		LoadActivityRequest subActivityRequest = new LoadActivityRequest();
-		resolveLaunchActivity(subActivityRequest, launchActivity);
-		
 		String launchContractString = getParentActivityDefinition().getModel().getCtrlProp(tableField, CtrlPropEnum.LAUNCHCONTRACT);
-		
 		if (launchContractString != null && !launchContractString.isEmpty()) {
 			
 			buildInjectedParams(launchContractString);
@@ -634,6 +645,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			switch (getType()) {
 				case SEARCH:
 					subActivityRequest.getCtrlProperties().putAll(getInjectedParams().getCtrlProperties());
+					resolveLaunchActivity(subActivityRequest, tabId, fluidService);
 					break;
 				case LOADACTIVITYDEF:
 					String ipService = returnContractIdentifier(contract);
@@ -642,6 +654,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					loadActivityDefRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					
+					resolveLaunchActivity(subActivityRequest, tabId, fluidService);
 					setService(ipService);
 					
 					loadActivityDefRequest.setParam("parentActivity", getParentActivityName());
@@ -657,6 +670,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					loadDataRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					subActivityRequest.getMoMsgParams().putAll(getInjectedParams().getMoMsgParams());
 					
+					resolveLaunchActivity(subActivityRequest, tabId, fluidService);
+					
 					loadDataRequest.setParam("parentActivity", getParentActivityName());
 					
 					setLastLoadDataRequest(loadDataRequest);
@@ -664,6 +679,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 				default: 
 					throw new IllegalArgumentException("Invalid ChildActivityDefinition type");
 			}
+		} else {
+			resolveLaunchActivity(subActivityRequest, tabId, fluidService);
 		}
 		
 		subActivityRequest.setParam("parentActivity", getParentActivityName());
@@ -708,17 +725,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	 *            {@link CtrlPropEnum#BUTTONACTIVITY} or
 	 *            {@link CtrlPropEnum#LOOKUPFINDER}
 	 */
-	public void resolveLaunchActivity(LoadActivityRequest loadActivityRequest, String launchActivity) {	
-		
-		if (launchActivity.startsWith(VALUE_OF_FUNCTION)) {
-			launchActivity = getValueOf(launchActivity);
-		}
-		
-		String[] split = launchActivity.split("\\,");
-		String activityType = split[0];
-		String tabId = split[1];
-		String fluidService = split[2];
-		
+	public void resolveLaunchActivity(LoadActivityRequest loadActivityRequest, String tabId, String fluidService) {	
 		ActivityDefinition pointActivity = resolveTarget(tabId, fluidService);
 		
 		if (this != pointActivity) {
@@ -728,12 +735,6 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			getParentActivityDefinition().getChildSet().add(this);  //if it isn't pointing to anything, it's a legitimate child
 		}
 		loadActivityRequest.setActivity(tabId);
-		
-		if (ActivityTypeEnum.POPUP_FINDER == ActivityTypeEnum.getActivityType(activityType)) {
-			setType(LaunchContractType.SEARCH);
-		} else {
-			setType(LaunchContractType.LOADDATA);
-		}
 	}
 	
 	@SuppressWarnings("unchecked")
