@@ -607,11 +607,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		setInjectedParams(new PresentationMessage());
 		setReturnProperties(null);
 		
+		final boolean lookupFinder;
+		
 		String launchActivity;
 		if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY);
+			lookupFinder = false;
 		} else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER) != null) {
 			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER);
+			lookupFinder = true;
 		} else {
 			throw new NullPointerException("The " + tableField +" tablefield has neither a BUTTONACTIVITY nor LOOKUPFINDER CtrlProp defined. Are you sure this field is a launchable?");
 		}
@@ -619,12 +623,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		if (launchActivity.startsWith(VALUE_OF_FUNCTION)) {
 			launchActivity = getValueOf(launchActivity);
 		}
+		
 		String[] launchActivitySplit = launchActivity.split("\\,");
 		String activityType = launchActivitySplit[0];
 		String tabId = launchActivitySplit[1];
 		String fluidService = launchActivitySplit[2];
 		
-		if (ActivityTypeEnum.POPUP_FINDER == ActivityTypeEnum.getActivityType(activityType)) {
+		ActivityTypeEnum activityTypeEnum = ActivityTypeEnum.getActivityType(activityType);
+		if (activityTypeEnum == ActivityTypeEnum.POPUP_FINDER
+				|| (activityTypeEnum == ActivityTypeEnum.SEARCH_RESULTS_DETAILS && lookupFinder)) {
 			setType(LaunchContractType.SEARCH);
 		} else {
 			setType(LaunchContractType.LOADDATA);
