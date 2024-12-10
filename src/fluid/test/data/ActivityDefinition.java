@@ -837,7 +837,7 @@ public class ActivityDefinition {
    
    public String findScreenValue(String tableFieldName) {
       
-      String fieldValue = "";
+	   StringBuilder screenValue = new StringBuilder("");
       
       if (tableFieldName.split("\\.").length >= 2) {
          
@@ -849,65 +849,92 @@ public class ActivityDefinition {
          }
          
          if (!getDataSourceDefinitionMap().containsKey(tableName)) {
-        	 return fieldValue;
+        	 return screenValue.toString();
          }
+         DataSourceDefinition dsDef = getDataSourceDefinitionMap().get(tableName);
          
-		 if (getDataSourceDefinitionMap().get(tableName).getRecordList().isEmpty()) {
-			 return fieldValue;
+		 if (dsDef.getRecordList().isEmpty()) {
+			 return screenValue.toString();
 		 }
          
          if ("grid".equalsIgnoreCase(fieldName)) {
-        	 fieldName = getDataSourceDefinitionMap().get(tableName).getPrimaryKey();
+        	 fieldName = dsDef.getPrimaryKey();
          }
 		 
-         Record record = getDataSourceDefinitionMap().get(tableName).getCurrentRecord();
-         FieldDefinition fieldDef = getDataSourceDefinitionMap().get(tableName).getFieldDefinition(fieldName);
-         
-         if (record == null ) {
-            return fieldValue;
+         List<Record> records;
+         if (dsDef.getSelectedGridRecordPrimaryKeyValues() != null && !dsDef.getSelectedGridRecordPrimaryKeyValues().isEmpty()) {
+        	 Set<Object> primaryKeyValues = dsDef.getSelectedGridRecordPrimaryKeyValues();
+        	 
+        	 List<Record> selectedGridRecords = new ArrayList<>();
+        	 for (Record gridRecord : dsDef.getRecordList()) {
+        		 if (primaryKeyValues.contains(gridRecord.getFieldValueAsObject(dsDef.getPrimaryKey()))) {
+        			 selectedGridRecords.add(gridRecord);
+        		 }
+        	 }
+        	 records = selectedGridRecords;
+         } else {
+        	 records = Collections.singletonList(dsDef.getCurrentRecord());
          }
-
-         if (fieldDef != null) {
-            String fldType = fieldDef.getType();
-            try {
-               if (fldType.equalsIgnoreCase("DATE")) {
-                  Date dsDateValue = record.getFieldValueAsDate(fieldName);
-                  if (dsDateValue == null) {
-                     fieldValue = record.getFieldValueAsString(fieldName);
-                  } else {
-                     SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat());
-                     fieldValue =  df.format(dsDateValue);
-                  }
-               } else if (fldType.equalsIgnoreCase("DATETIME")) {
-                  Date dsDateValue = record.getFieldValueAsDatetime(fieldName);
-                  if (dsDateValue == null) {
-                     fieldValue = record.getFieldValueAsString(fieldName);
-                  } else {
-                     SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat() + " HH:mm:ss");
-                     fieldValue =  df.format(dsDateValue);
-                  }
-               } else {
-                  fieldValue = record.getFieldValueAsString(fieldName);
-               }
-               if (fieldValue == null) {
-                  fieldValue = "";
-               }
-            } catch (Exception e) {
-               // return the string value, invalid dates must be validated on
-               // the server
-               fieldValue = record.getFieldValueAsString(fieldName);
-               if (fieldValue == null) {
-                  fieldValue = "";
-               }
-            }
-		} else if (AppServerAdapter.getInstance().allowOrphanFields()) {
-			 fieldValue = record.getFieldValueAsString(fieldName);
-			 if (fieldValue == null) {
-			    fieldValue = "";
-			 }
-		}
+         FieldDefinition fieldDef = dsDef.getFieldDefinition(fieldName);
+         
+         String[] fieldValues = new String[records.size()];
+         for (int i = 0 ; i < records.size() ; i++) {
+        	 final Record record = records.get(i);
+        	 
+	         if (record == null ) {
+	        	 fieldValues[i] = screenValue.toString();
+	         }
+	         
+	         if (fieldDef != null) {
+	            String fldType = fieldDef.getType();
+	            try {
+	               if (fldType.equalsIgnoreCase("DATE")) {
+	                  Date dsDateValue = record.getFieldValueAsDate(fieldName);
+	                  if (dsDateValue == null) {
+	                     fieldValues[i] = record.getFieldValueAsString(fieldName);
+	                  } else {
+	                     SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat());
+	                     fieldValues[i] =  df.format(dsDateValue);
+	                  }
+	               } else if (fldType.equalsIgnoreCase("DATETIME")) {
+	                  Date dsDateValue = record.getFieldValueAsDatetime(fieldName);
+	                  if (dsDateValue == null) {
+	                     fieldValues[i] = record.getFieldValueAsString(fieldName);
+	                  } else {
+	                     SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat() + " HH:mm:ss");
+	                     fieldValues[i] =  df.format(dsDateValue);
+	                  }
+	               } else {
+	                  fieldValues[i] = record.getFieldValueAsString(fieldName);
+	               }
+	               if (fieldValues[i] == null) {
+	                  fieldValues[i] = "";
+	               }
+	            } catch (Exception e) {
+	               // return the string value, invalid dates must be validated on
+	               // the server
+	               fieldValues[i] = record.getFieldValueAsString(fieldName);
+	               if (fieldValues[i] == null) {
+	                  fieldValues[i] = "";
+	               }
+	            }
+			} else if (AppServerAdapter.getInstance().allowOrphanFields()) {
+				 fieldValues[i] = record.getFieldValueAsString(fieldName);
+				 if (fieldValues[i] == null) {
+				    fieldValues[i] = "";
+				 }
+			}
+         }
+         
+         for (String fieldValue: fieldValues) {
+        	 screenValue.append(fieldValue + ",");
+         }
+         if (!screenValue.isEmpty()) {
+        	 screenValue.delete(screenValue.length()-1, screenValue.length()); // Remove last comma
+         }
       }
-      return fieldValue;
+      
+      return screenValue.toString();
    }
 
    public JsonObject getRequiredDataTable(String tableName, String[] fieldArray, boolean trim) {

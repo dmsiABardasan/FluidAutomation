@@ -1,9 +1,14 @@
 package fluid.test.data;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import fluid.test.adapter.AppServerAdapter;
 
@@ -19,6 +24,7 @@ public class DataSourceDefinition {
    private int currentRow;
    private int firstRow;
    private int lastRow;
+   private Set<Object> selectedGridRecordPrimaryKeyValues;
 
    private Boolean changes;
    private Boolean trackingChanges;
@@ -192,6 +198,31 @@ public class DataSourceDefinition {
 
    public Record getCurrentRecord() {
       return recordList.get(currentRow);
+   }
+   
+   public void selectGridRecords(Object... primaryKeyValues) {
+	   
+	   Set<Object> selectedRecords = new LinkedHashSet<Object>(Arrays.asList(primaryKeyValues));
+	   
+	   Map<String, Object> gridDefinition;
+	   if ((gridDefinition = viewDefinition.getDefinition()) != null) {
+		   String selectionProperty;
+		   if ((selectionProperty = Objects.toString(gridDefinition.get("selectionProperty"), null)) != null) {
+			   for (Record record : getRecordList()) {
+				   record.setFieldValue(selectionProperty, selectedRecords.contains(record.getFieldValueAsObject(getPrimaryKey())));
+			   }
+		   }
+	   }  
+	   
+	   if (primaryKeyValues == null || primaryKeyValues.length == 0) {
+		   this.selectedGridRecordPrimaryKeyValues = null;
+	   } else {
+		   this.selectedGridRecordPrimaryKeyValues = selectedRecords;
+	   }
+   }
+   
+   public Set<Object> getSelectedGridRecordPrimaryKeyValues(){
+	   return this.selectedGridRecordPrimaryKeyValues == null ? null : Collections.unmodifiableSet(this.selectedGridRecordPrimaryKeyValues);
    }
 
    public String getPrimaryKey() {
