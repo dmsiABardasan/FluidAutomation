@@ -124,6 +124,8 @@ public class ActivityDefinitionResponseCascader extends ActivityDefinition {
 		
 		setActivityReference(activityDef);
 		
+		setStopOnWarning(activityDef.isStopOnWarnining());
+		setValidateOnly(activityDef.isValidateOnly());
 		setRepeatButtons(activityDef.getRepeatButtons());
 		setClosed(activityDef.isClosed());
 		setLastLoadActivityRequest(activityDef.getLastLoadActivityRequest());

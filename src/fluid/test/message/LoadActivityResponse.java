@@ -25,7 +25,9 @@ public class LoadActivityResponse extends PresentationMessage {
       activityDesc = getParamAsString("activityDesc");
       activityIcon = getParamAsString("activityIcon");
       activityType = getParamAsString("activityType");
-      passwordReq = getParamAsBoolean("passwordReq");
+      if (getMoMsgParams().containsKey("passwordReq")) {
+         passwordReq = getParamAsBoolean("passwordReq");
+      }
       
       dataSourceDefs = getParamAsJSONArray("dataSourceDefs");
       dataRelations = getParamAsJSONArray("dataRelations");

@@ -19,8 +19,12 @@ import auto.utils.Reader;
 public class ActivityCollator {
 
 	public static void main(String[] args) {
-		
-		boolean automationOnly = false;
+		final boolean automationOnly;
+		if (args.length > 0) {
+			automationOnly = "-a".equalsIgnoreCase(args[0]);
+		} else {
+			automationOnly = false;
+		}
 		
 		System.out.println(AppServerAdapterRecorder.FLUID_ACTIVITY_OUTPUT + "_Activities.dat");
 		System.out.println(ProgressActivities.PROGRESS_ACTIVITY_OUTPUT + "_Activities.dat");
