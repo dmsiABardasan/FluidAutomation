@@ -52,7 +52,8 @@ public enum CtrlPropEnum {
    FULLSCREEN("FULLSCREEN"),
    ISREQUIRED("ISREQUIRED"),
    CANHIDE("CANHIDE"),
-   GRIDSUMMARY("GRIDSUMMARY");
+   GRIDSUMMARY("GRIDSUMMARY"),
+   HINT("HINT");
 
    private String value;
 
