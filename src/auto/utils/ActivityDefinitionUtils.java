@@ -312,15 +312,17 @@ public final class ActivityDefinitionUtils {
 							break;
 						}
 					}
-				} else {
-					for (DataSourceDefinition dsDef : activityDef.getDataSourceDefinitionMap().values()) {
-						ViewDefinition viewDef = dsDef.getViewDefinition();
-						Map<String, Object> fieldViewDef = viewDef.getFieldViewDefinition(field);
-						if (fieldViewDef != null) {
-							runSave = Boolean.parseBoolean(String.valueOf(fieldViewDef.get(activitySaveButton)));
-							break;
-						}
-					}
+				}
+				
+				if (!runSave) {
+	           for (DataSourceDefinition dsDef : activityDef.getDataSourceDefinitionMap().values()) {
+	               ViewDefinition viewDef = dsDef.getViewDefinition();
+	               Map<String, Object> fieldViewDef = viewDef.getFieldViewDefinition(field);
+	               if (fieldViewDef != null) {
+	                  runSave = Boolean.parseBoolean(String.valueOf(fieldViewDef.get(activitySaveButton)));
+	                  break;
+	               }
+	            }
 				}
 			}
 			
