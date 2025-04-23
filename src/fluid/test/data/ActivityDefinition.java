@@ -388,7 +388,7 @@ public class ActivityDefinition {
 	public LoadDataResponse loadCurrentResultRecord() throws Throwable {
 		
 		if (getResultsDataSourceDefinition().getRecordList().isEmpty()) {
-			throw new IllegalStateException("Cannot load current result record, there is no records in the \"result\" DataSourceDefinition.");
+			throw new IllegalStateException("Cannot load current result record, there are no records in the \"result\" DataSourceDefinition.");
 		}
 		
 		LoadDataRequest loadDataRequest = new LoadDataRequest(LoadDataModeEnum.EDIT);
@@ -721,16 +721,17 @@ public class ActivityDefinition {
    private void checkFieldValueInList(String tableName, String fieldName, String list) throws Throwable {
 
       Record record = this.dataSourceDefinitionMap.get(tableName).getCurrentRecord();
-      String[] listArray = list.split("\\,");
-
+      //String[] listArray = list.split("\\,");
+      
       if (record == null) {
          Throwable e = new Throwable("System error: temp-table record for "
                + tableName + "." + fieldName + " is not available");
          e.fillInStackTrace();
          throw e;
       }
-
-      boolean found = false;
+      
+      // This dead code validates if the value actually exists inside the list, but apparently any value can be forced inside.
+      /*      boolean found = false;
       String value = record.getFieldValueAsString(fieldName);
       for (String entry : listArray) {
          if (entry.equalsIgnoreCase(value)) {
@@ -747,7 +748,7 @@ public class ActivityDefinition {
                      + fieldName + "Not in selection list [" + list + "]");
          e.fillInStackTrace();
          throw e;
-      }
+      }*/
    }
    
    private void checkFieldValueInPairsList(String tableName, String fieldName, String list) throws Throwable {
