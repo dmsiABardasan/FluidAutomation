@@ -835,6 +835,8 @@ public class Step {
 				}
 			}
 		} catch (Throwable ex) {
+		   setResponse(new PresentationMessage());
+		   strBldr.append("Failed to launch");
 			if (getValidationType() != ValidationTypeEnum.IGNORE_ERRORS) {
 				ex.printStackTrace();
 				fail(ex.getMessage());
