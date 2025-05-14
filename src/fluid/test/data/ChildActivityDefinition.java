@@ -91,7 +91,8 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	private String contract;
 	private String returnProperties;
 	private String tableField;
-	
+   private String launchContract;
+   private String launchActivity;
 	private String passThroughName;
 	
 	private boolean disabled = false;
@@ -132,7 +133,23 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		this.parentActivityDef = parentActivityDef;
 	}
 	
-	public String getContract() {
+	public String getLaunchContract() {
+      return this.launchContract;
+   }
+
+   protected void setLaunchContract(String launchContract) {
+      this.launchContract = launchContract;
+   }
+
+   public String getLaunchActivity() {
+      return this.launchActivity;
+   }
+
+   protected void setLaunchActivity(String launchActivity) {
+      this.launchActivity = launchActivity;
+   }
+
+   public String getContract() {
 		return this.contract;
 	}
 	
@@ -555,90 +572,59 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		return identifier;
 	}
 	
-	/**
-	 * <p>
-	 * Creates a <code>LoadActivityRequest</code> and a <code>Request</code>
-	 * containing either a <code>LoadDataRequest</code> or
-	 * <code>GetResultsRequest</code> based on a field's LAUNCHCONTRACT CtrlProp
-	 * value:
-	 * </p>
-	 * <ul>
-	 * <li>LOADDATA<br>
-	 * The launchContract string format is comma separated, each value of that is
-	 * then separated by "equals" (=) with the left hand side being the
-	 * LoadDataRequest param key and the right hand side being a table.key string
-	 * that is used to fetch the value from the parent
-	 * <code>ActivityDefinition</code> (If the value could not be found, the
-	 * searching value is now the value). If the comma separated value is not equals
-	 * separated, it is assumed to be the loadRowId, in which if a loadRowId exists,
-	 * the <code>LoadDataModeEnum</code> for the <code>LoadDataRequest</code> is
-	 * <strong>EDIT</strong>, and not <strong>ADD</strong>. Terminating stage is
-	 * <code>SaveDataRequest</code> where the data needed will be returned in a
-	 * <code>SaveDataResponse</code>.</li>
-	 * <li>GETRESULTS<br>
-	 * <code>LoadActivityRequest</code> has the launchContract comma separated
-	 * values as control properties (CtrlProps) instead of parameters. "RETURN"
-	 * section specifies what keys values are to be returned to when the
-	 * activityDefinition terminating stage is called, if absent the return value
-	 * (if any) will be in a blank named control property. Terminating stage is
-	 * <code>LoadDataRequest</code> where the data needed will be returned in a
-	 * <code>LoadDataResponse</code>.</li>
-	 * </ul>
-	 * <p>
-	 * This saves the <code>LoadActivityRequest</code> and <code>Request</code> to
-	 * object variables to be used and initialised conventionally.
-	 * </p>
-	 * <p>
-	 * There is a possibility of a nested 'valueOf()' function where the
-	 * launchContract should be, as well as inside any of the LaunchContract Headers
-	 * (SEARCH, LOADDATA). This function points to a table value that contains a
-	 * referenced launchContract and returns that in replacement.
-	 * </p>
-	 *
-	 * @param table
-	 *            String of the table that contains the specified field
-	 * @param field
-	 *            String of the field that contains the value required
-	 */
-	public final void createLaunchContract(final String table, final String field) {
+   public final void createLaunchContract(String table, String field) {
+      String tableField = table + "." + field;
+      setTableField(tableField);
+
+      final boolean lookupFinder;
+
+      String launchActivity;
+      if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
+         launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(),
+               CtrlPropEnum.BUTTONACTIVITY);
+         lookupFinder = false;
+      } else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(),
+            CtrlPropEnum.LOOKUPFINDER) != null) {
+         launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(),
+               CtrlPropEnum.LOOKUPFINDER);
+         lookupFinder = true;
+      } else {
+         throw new NullPointerException("The " + tableField
+               + " tablefield has neither a BUTTONACTIVITY nor LOOKUPFINDER CtrlProp defined. Are you sure this field is a launchable?");
+      }
+
+      String launchContractString = getParentActivityDefinition().getModel().getCtrlProp(tableField, CtrlPropEnum.LAUNCHCONTRACT);
+
+      createLaunchContract(launchContractString, launchActivity, lookupFinder);
+   }
+	
+	public final void createLaunchContract(String launchContractString, String launchActivity, boolean lookupFinder) {
 		
-		String tableField = table + "." + field;
-		setTableField(tableField);
-		setInjectedParams(new PresentationMessage());
-		setReturnProperties(null);
+      setInjectedParams(new PresentationMessage());
+      setReturnProperties(null);
+	   
+      if (launchActivity.startsWith(VALUE_OF_FUNCTION)) {
+         launchActivity = getValueOf(launchActivity);
+      }
+	   
+		this.launchContract = launchContractString;
+		this.launchActivity = launchActivity;
 		
-		final boolean lookupFinder;
-		
-		String launchActivity;
-		if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY) != null) {
-			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.BUTTONACTIVITY);
-			lookupFinder = false;
-		} else if (getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER) != null) {
-			launchActivity = getParentActivityDefinition().getModel().getCtrlProp(getTableField(), CtrlPropEnum.LOOKUPFINDER);
-			lookupFinder = true;
-		} else {
-			throw new NullPointerException("The " + tableField +" tablefield has neither a BUTTONACTIVITY nor LOOKUPFINDER CtrlProp defined. Are you sure this field is a launchable?");
-		}
-		
-		if (launchActivity.startsWith(VALUE_OF_FUNCTION)) {
-			launchActivity = getValueOf(launchActivity);
-		}
-		
-		String[] launchActivitySplit = launchActivity.split("\\,");
-		String activityType = launchActivitySplit[0];
-		String tabId = launchActivitySplit[1];
-		String fluidService = launchActivitySplit[2];
-		
-		ActivityTypeEnum activityTypeEnum = ActivityTypeEnum.getActivityType(activityType);
-		if (activityTypeEnum == ActivityTypeEnum.POPUP_FINDER
-				|| (activityTypeEnum == ActivityTypeEnum.SEARCH_RESULTS_DETAILS && lookupFinder)) {
-			setType(LaunchContractType.SEARCH);
-		} else {
-			setType(LaunchContractType.LOADDATA);
-		}
+      String[] launchActivitySplit = launchActivity.split("\\,");
+      String activityType = launchActivitySplit[0];
+      String tabId = launchActivitySplit[1];
+      String fluidService = launchActivitySplit[2];
+      
+      ActivityTypeEnum activityTypeEnum = ActivityTypeEnum.getActivityType(activityType);
+      if (activityTypeEnum == ActivityTypeEnum.POPUP_FINDER
+            || (activityTypeEnum == ActivityTypeEnum.SEARCH_RESULTS_DETAILS && lookupFinder)) {
+         setType(LaunchContractType.SEARCH);
+      } else {
+         setType(LaunchContractType.LOADDATA);
+      }
 		
 		LoadActivityRequest subActivityRequest = new LoadActivityRequest();
-		String launchContractString = getParentActivityDefinition().getModel().getCtrlProp(tableField, CtrlPropEnum.LAUNCHCONTRACT);
+		
 		if (launchContractString != null && !launchContractString.isEmpty()) {
 			
 			buildInjectedParams(launchContractString);
@@ -847,6 +833,13 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 		if (activityDef instanceof ChildActivityDefinition) {
 			ChildActivityDefinition childActivityDef = (ChildActivityDefinition) activityDef; 
 			setParentActivityDefinition(childActivityDef.getParentActivityDefinition());
+			setLaunchContract(childActivityDef.getLaunchContract());
+			setLaunchActivity(childActivityDef.getLaunchActivity());
+			setContract(childActivityDef.getContract());
+			setTableField(childActivityDef.getTableField());
+			setType(childActivityDef.getType());
+			setReturnProperties(childActivityDef.getReturnProperties());
+			this.passThroughName = childActivityDef.passThroughName;
 		}
 	}
 	
