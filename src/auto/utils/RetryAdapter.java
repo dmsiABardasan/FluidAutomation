@@ -77,7 +77,7 @@ public class RetryAdapter extends AppServerAdapterSock{
 						//Exit
 						fail(key + "-Record locked, retried " + getRetryLimit() + " times (The retry limit), exiting test now.");
 					}
-					getRetries().put(key,  + 1);
+					getRetries().put(key, currentRetries + 1);
 				} else {
 					getRetries().put(key, 1);
 				}

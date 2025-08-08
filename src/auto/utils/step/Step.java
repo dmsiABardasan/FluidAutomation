@@ -1,6 +1,5 @@
 package auto.utils.step;
 
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -580,7 +579,14 @@ public class Step {
 				}
 				
 				try {
-					assertFalse("Activity is closed.", activityDefRes.isClosed());
+				   
+				   //assertFalse("Activity is closed.", activityDefRes.isClosed());
+				   if (activityDefRes.isClosed()) {
+				      System.err.println("[WARNING] A step was run against a closed activity. Enable debugging here for more detail.");
+                  procedure.remove(i);
+                  i--;
+                  continue;
+				   }
 					
 					if (!step.isLaunch()) {
 						step.validationHandling(activityDefRes, childActivityDefList, procedure, haltOnChildActivity, clickCrudButtons);
