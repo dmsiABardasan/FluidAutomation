@@ -43,9 +43,11 @@ public class TestRailCollator {
 		BufferedWriter writer = null;
 		try {
 			writer = new BufferedWriter(new FileWriter("testrail.ini"));
-			for (String className : entityClasses) {
-				Class<?> clazz = Class.forName(className);
-			    writer.append(className + "=" + clazz.getAnnotation(TestRailLink.class).value() + "\r\n");
+			if (entityClasses != null) {
+				for (String className : entityClasses) {
+					Class<?> clazz = Class.forName(className);
+					writer.append(className + "=" + clazz.getAnnotation(TestRailLink.class).value() + "\r\n");
+				}
 			}
 		}catch (ClassNotFoundException | IOException ex) {
 			ex.printStackTrace();
@@ -58,7 +60,7 @@ public class TestRailCollator {
 				throw new NullPointerException("Writer could not be closed");
 			}
 		}
-		System.out.println("Links found and created: " + entityClasses.size());
+		System.out.println("Links found and created: " + (entityClasses != null ? entityClasses.size() : 0));
 	}
 	
 }
