@@ -1124,8 +1124,7 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 	@Override
 	public String toString() {
 		return "{\"childActivityDefinition\":\"" + getModel().getActivity() + "\",\t\"service\":\"" + getService()
-				+ "\",\t\"parentActivityDefinition\":\"" + getParentActivityName() + "\",\t\"service\":\""
-				+ getParentActivityDefinition().getService() + "\",\t\"launchedBy\":\"" + getTableField() + "\"}";
+				+ "\",\t\"parentActivityDefinition\":\"" + getParentActivityName() + "\",\t\"launchedBy\":\"" + getTableField() + "\"}";
 	}
 
 	/**

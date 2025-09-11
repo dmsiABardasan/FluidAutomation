@@ -880,51 +880,52 @@ public class ActivityDefinition {
          
          String[] fieldValues = new String[records.size()];
          for (int i = 0 ; i < records.size() ; i++) {
-        	 final Record record = records.get(i);
-        	 
-	         if (record == null ) {
-	        	 fieldValues[i] = screenValue.toString();
-	         }
-	         
-	         if (fieldDef != null) {
-	            String fldType = fieldDef.getType();
-	            try {
-	               if (fldType.equalsIgnoreCase("DATE")) {
-	                  Date dsDateValue = record.getFieldValueAsDate(fieldName);
-	                  if (dsDateValue == null) {
-	                     fieldValues[i] = record.getFieldValueAsString(fieldName);
-	                  } else {
-	                     SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat());
-	                     fieldValues[i] =  df.format(dsDateValue);
-	                  }
-	               } else if (fldType.equalsIgnoreCase("DATETIME")) {
-	                  Date dsDateValue = record.getFieldValueAsDatetime(fieldName);
-	                  if (dsDateValue == null) {
-	                     fieldValues[i] = record.getFieldValueAsString(fieldName);
-	                  } else {
-	                     SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat() + " HH:mm:ss");
-	                     fieldValues[i] =  df.format(dsDateValue);
-	                  }
-	               } else {
-	                  fieldValues[i] = record.getFieldValueAsString(fieldName);
-	               }
-	               if (fieldValues[i] == null) {
-	                  fieldValues[i] = "";
-	               }
-	            } catch (Exception e) {
-	               // return the string value, invalid dates must be validated on
-	               // the server
-	               fieldValues[i] = record.getFieldValueAsString(fieldName);
-	               if (fieldValues[i] == null) {
-	                  fieldValues[i] = "";
-	               }
-	            }
-			} else if (AppServerAdapter.getInstance().allowOrphanFields()) {
-				 fieldValues[i] = record.getFieldValueAsString(fieldName);
-				 if (fieldValues[i] == null) {
-				    fieldValues[i] = "";
-				 }
-			}
+            final Record record = records.get(i);
+
+            if (record == null) {
+               fieldValues[i] = screenValue.toString();
+            }
+
+            if (fieldDef != null) {
+               String fldType = fieldDef.getType();
+               try {
+                  if (fldType.equalsIgnoreCase("DATE")) {
+                     Date dsDateValue = record.getFieldValueAsDate(fieldName);
+                     if (dsDateValue == null) {
+                        fieldValues[i] = record.getFieldValueAsString(fieldName);
+                     } else {
+                        SimpleDateFormat df = new SimpleDateFormat(AppServerAdapter.getInstance().getDateFormat());
+                        fieldValues[i] = df.format(dsDateValue);
+                     }
+                  } else if (fldType.equalsIgnoreCase("DATETIME")) {
+                     Date dsDateValue = record.getFieldValueAsDatetime(fieldName);
+                     if (dsDateValue == null) {
+                        fieldValues[i] = record.getFieldValueAsString(fieldName);
+                     } else {
+                        SimpleDateFormat df = new SimpleDateFormat(
+                              AppServerAdapter.getInstance().getDateFormat() + " HH:mm:ss");
+                        fieldValues[i] = df.format(dsDateValue);
+                     }
+                  } else {
+                     fieldValues[i] = record.getFieldValueAsString(fieldName);
+                  }
+                  if (fieldValues[i] == null) {
+                     fieldValues[i] = "";
+                  }
+               } catch (Exception e) {
+                  // return the string value, invalid dates must be validated on
+                  // the server
+                  fieldValues[i] = record.getFieldValueAsString(fieldName);
+                  if (fieldValues[i] == null) {
+                     fieldValues[i] = "";
+                  }
+               }
+            } else if (AppServerAdapter.getInstance().allowOrphanFields()) {
+               fieldValues[i] = record.getFieldValueAsString(fieldName);
+               if (fieldValues[i] == null) {
+                  fieldValues[i] = "";
+               }
+            }
          }
          
          for (String fieldValue: fieldValues) {
@@ -1019,14 +1020,32 @@ public class ActivityDefinition {
                   this.model.setCtrlProp(tableFieldName, CtrlPropEnum.SCREENVALUE, screenValue);
                }
                
-               if (!getDataSourceDefinitionMap().containsKey(tableName) ||
-            		   getDataSourceDefinitionMap().get(tableName).getRecordList().isEmpty() ||
-            		   getDataSourceDefinitionMap().get(tableName).getCurrentRecord() == null) {
+               Map<String, DataSourceDefinition> dsDefMap = getDataSourceDefinitionMap();
+               if (!dsDefMap.containsKey(tableName) ||
+                     dsDefMap.get(tableName).getRecordList().isEmpty() ||
+                     dsDefMap.get(tableName).getCurrentRecord() == null) {
             	   return;
                }
-               Record record = getDataSourceDefinitionMap().get(tableName).getCurrentRecord();
                
-               FieldDefinition fieldDef = getDataSourceDefinitionMap().get(tableName).getFieldDefinition(fieldName);      
+               // Special logic for "grid" fieldname that selects record.
+               if ("grid".equals(fieldName)) {
+                  if (screenValue != null && !screenValue.isEmpty()) {
+                     DataSourceDefinition dsDef = dsDefMap.get(tableName);
+                     List<Record> recordList = dsDef.getRecordList();
+                     for (Record recordEntry : recordList) {
+                        String primaryKey = recordEntry.getFieldValueAsString(dsDef.getPrimaryKey());
+                        if (screenValue.equals(primaryKey)) {
+                           dsDef.setCurrentRow(recordList.indexOf(recordEntry));
+                           break;
+                        }
+                     }
+                  }
+                  return;
+               }
+               
+               Record record = dsDefMap.get(tableName).getCurrentRecord();
+               
+               FieldDefinition fieldDef = dsDefMap.get(tableName).getFieldDefinition(fieldName);      
                if (fieldDef != null) {
                   String fldType = fieldDef.getType();
                   
