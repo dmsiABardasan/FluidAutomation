@@ -861,11 +861,15 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			String table = tableField[0];
 			String field = tableField[1];
 			
-			finderReturnApplied = true;
-			
-			Object value = loadDataResponse.getParamAsObject("finderReturn");
-			parentActivityDef.getDataSourceDefinitionMap().get(table).getCurrentRecord().setFieldValue(field, value);
-			asyncValidations.add(new String[][] {{table,field}});
+			DataSourceDefinition dsDef = parentActivityDef.getDataSourceDefinitionMap().get(table);
+			if (dsDef != null) { // Could be a button finderReturn
+			   Object value = loadDataResponse.getParamAsObject("finderReturn");
+			   
+			   dsDef.getCurrentRecord().setFieldValue(field, value);
+	         asyncValidations.add(new String[][] {{table,field}});
+	         
+	         finderReturnApplied = true;
+			}
 		} /*else*/ // Both need to be accounted for
 		
 		if (returnProps != null && !returnProps.isEmpty()) {
