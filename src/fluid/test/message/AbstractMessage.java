@@ -19,6 +19,10 @@ public abstract class AbstractMessage {
 
    private String messageKeyPin = null;
 
+   // A2W Extension: Support for non-JSON content
+   private String rawContent = null;
+   private boolean isNonJsonContent = false;
+
    public AbstractMessage() {
       moMsgParams = new JsonObject();
    }
@@ -26,20 +30,30 @@ public abstract class AbstractMessage {
    public boolean isEmpty() {
 	   return moMsgParams.isEmpty();
    }
-   
+
    public AbstractMessage(String pcMessage) throws Throwable {
       if (pcMessage == null || pcMessage.isEmpty()) {
          pcMessage = "{}";
       }
       if (!pcMessage.trim().startsWith("{")) {
-         Throwable e = new Throwable("Not JSON message:" + pcMessage);
-         e.fillInStackTrace();
-         e.printStackTrace();
-         throw e;
+         // A2W Extension: Handle non-JSON content gracefully
+         this.isNonJsonContent = true;
+         this.rawContent = pcMessage;
+         this.moMsgParams = new JsonObject();
+         return;
       }
-      
+
       moMsgParams = (JsonObject) Jsoner.deserialize(pcMessage);
       this.messageKeyPin = getParamAsString("_password");
+   }
+
+   // A2W Extension methods
+   public boolean isNonJsonContent() {
+      return isNonJsonContent;
+   }
+
+   public String getRawContent() {
+      return rawContent;
    }
 
    public String getMessageKeyPin() {
@@ -432,10 +446,15 @@ public abstract class AbstractMessage {
 
    /**
     * Serialise the message for passing through the service interface
-    * 
-    * @return A String JSON string
+    *
+    * @return A String JSON string, or raw content for non-JSON responses
     */
    public String serializeMessage() {
+
+      // A2W Extension: Return raw content for non-JSON messages
+      if (isNonJsonContent && rawContent != null) {
+         return rawContent;
+      }
 
       /* Call StoreProperties in all inherited classes */
       storeProperties();
@@ -443,7 +462,7 @@ public abstract class AbstractMessage {
       if (messageKeyPin != null) {
          setParam("_password", messageKeyPin);
       }
-      
+
       return moMsgParams.toJson();
 
    }
