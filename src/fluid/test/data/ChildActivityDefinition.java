@@ -1,5 +1,6 @@
 package fluid.test.data;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -259,7 +260,17 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 				} else {
 					LoadDataRequest loadDataRequest = new LoadDataRequest(getLastLoadActivityRequest().serializeMessage());
 					
-					loadDataRequest.setParam("selectedList", primaryKeyValue);
+               // Handle multiple selections from selectGridRecords() calls
+               if (getResultsDataSourceDefinition().getSelectedGridRecordPrimaryKeyValues() != null && !getResultsDataSourceDefinition().getSelectedGridRecordPrimaryKeyValues().isEmpty()) {
+                  // Multiple selections - convert to comma-separated string
+                  List<Object> selectedValues = new ArrayList<>(getResultsDataSourceDefinition().getSelectedGridRecordPrimaryKeyValues());
+                  String commaSeparatedValues = String.join(",", selectedValues.stream().map(String::valueOf).toArray(String[]::new));
+                  loadDataRequest.setParam("selectedList", commaSeparatedValues);
+               } else {
+                  // Single selection - existing behavior
+                  loadDataRequest.setParam("selectedList", primaryKeyValue);
+               }
+               
 					loadDataRequest.setLoadMode(LoadDataModeEnum.EDIT);
 					loadDataRequest.setLoadRowid(primaryKeyValue);
 					
