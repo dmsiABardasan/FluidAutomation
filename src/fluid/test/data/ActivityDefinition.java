@@ -240,19 +240,37 @@ public class ActivityDefinition {
       //Discover the datasource definitions and field definitions
       JsonArray dsDefs = this.model.getDataSourceDefs();
       if(dsDefs != null && !dsDefs.isEmpty()) {
-	      for (@SuppressWarnings("rawtypes")
-	      Iterator iterator = dsDefs.iterator(); iterator.hasNext();) {
-	         JsonObject jdsDef = (JsonObject) iterator.next();
-	         
-	         DataSourceDefinition dsDef = new DataSourceDefinition();
-	         dsDef.setTableName(((String) jdsDef.get("tableName")));
-	         dsDef.setDataSetName(((String) jdsDef.get("dataSetName")));
-	
-	         addFieldDefinition((JsonArray) jdsDef.get("dsFields"), dsDef);
-	         
-	         this.dataSourceDefinitionMap.put(dsDef.getTableName(), dsDef);
-	      }
+         boolean hasDefaultRecord = false;
+         DataSourceDefinition potentialResultsDef = null;
+       for (@SuppressWarnings("rawtypes")
+       Iterator iterator = dsDefs.iterator(); iterator.hasNext();) {
+          JsonObject jdsDef = (JsonObject) iterator.next();
+          
+          DataSourceDefinition dsDef = new DataSourceDefinition();
+          dsDef.setTableName(((String) jdsDef.get("tableName")));
+          dsDef.setDataSetName(((String) jdsDef.get("dataSetName")));
+ 
+          addFieldDefinition((JsonArray) jdsDef.get("dsFields"), dsDef);
+
+          if (Boolean.TRUE.equals(jdsDef.get("defaultRecord"))) {
+             Record defaultRec = new Record();
+             for (String field : dsDef.getFieldDefinitionMap().keySet()) {
+                defaultRec.setFieldValue(field, (Object) null);
+             }
+             dsDef.getRecordList().add(defaultRec);
+             this.genSearchDataSourceDefinition = dsDef;
+             hasDefaultRecord = true;
+          } else if (potentialResultsDef == null) {
+             potentialResultsDef = dsDef;
+          }
+
+          this.dataSourceDefinitionMap.put(dsDef.getTableName(), dsDef);
+       }
+         if (hasDefaultRecord && potentialResultsDef != null) {
+            this.resultsDataSourceDefinition = potentialResultsDef;
+         }
       }
+      
       //Discover viewDetail information
       ViewDefinition.setViewDefinitions(this.dataSourceDefinitionMap, this.model.getViewDetails());
 	  
