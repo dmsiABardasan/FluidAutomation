@@ -318,10 +318,11 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 					String[] tableField = ctrlPropPair.getName().split("\\.");
 					
 					if (!tableField[1].equals(RELOAD_SEARCH_CRITERIA)) {
-						if (!getGenSearchDataSourceDefinition().getFieldDefinitionMap().containsKey(tableField[1])) {
-							if (getGenSearchDataSourceDefinition() == getDataSourceDefinitionMap().get(tableField[0])) {
+						DataSourceDefinition matchedDSDef = getDataSourceDefinitionMap().get(tableField[0]);
+						if (matchedDSDef != null && !getGenSearchDataSourceDefinition().getFieldDefinitionMap().containsKey(tableField[1])) {
+							if (getGenSearchDataSourceDefinition() == matchedDSDef) {
 								getGenSearchDataSourceDefinition().addFieldDefinition(new FieldDefinition(tableField[1], "TEXT"));
-							}else if (getAdvSearchDataSourceDefinition() == getDataSourceDefinitionMap().get(tableField[0])) {
+							} else if (getAdvSearchDataSourceDefinition() == matchedDSDef) {
 								getAdvSearchDataSourceDefinition().addFieldDefinition(new FieldDefinition(tableField[1], "TEXT"));
 							}
 						}
@@ -1041,8 +1042,11 @@ public class ChildActivityDefinition extends ActivityDefinitionResponseCascader 
 			if (keyArray[0].split("\\.").length >= 2) {
 				if (keyArray[1].startsWith("y")) {
 					getInjectedParams().setCtrlProp(keyArray[0].substring(0, keyArray[0].lastIndexOf(".")), CtrlPropEnum.BUTTONCLICK, "");
+				} else if (keyArray.length == 2) {
+					Object ctrlPropValue = findParentActivityValue(keyArray[1]);
+					getInjectedParams().setCtrlProp(keyArray[0], CtrlPropEnum.SCREENVALUE, Objects.toString(ctrlPropValue, ""));
 				}
-			}else {
+			} else {
 				if (keyArray.length == 2) {
 	    			Object ctrlPropValue = findParentActivityValue(keyArray[1]);
 	    			getInjectedParams().setCtrlProp(table + "." + keyArray[0], CtrlPropEnum.SCREENVALUE, Objects.toString(ctrlPropValue, ""));
