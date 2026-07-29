@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +17,7 @@ import javax.net.ssl.X509TrustManager;
 import okhttp3.Cookie;
 import okhttp3.CookieJar;
 import okhttp3.HttpUrl;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Request.Builder;
@@ -70,7 +72,26 @@ public class RestAdapter {
 	
 	private final OkHttpClient client;
 	private final CustomCookieJar cookieJar = new CustomCookieJar();
-	
+
+	private static final String SESSION_COOKIE_NAME = "JSESSIONID";
+	/**
+	 * Cookie the Fluid web tier publishes the Spring Security CSRF token in
+	 * (see FluidCsrfCookieFilter in FluidUI) and the header Spring's CsrfFilter
+	 * reads it back from. The token is bound to the JSESSIONID session that
+	 * issued it, so tokens are remembered per session.
+	 */
+	private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
+	private static final String CSRF_HEADER_NAME = "X-CSRF-TOKEN";
+
+	private final Map<String, Cookie> csrfTokensBySession =
+			Collections.synchronizedMap(new LinkedHashMap<String, Cookie>(16, 0.75f, true) {
+				private static final long serialVersionUID = 1L;
+				@Override
+				protected boolean removeEldestEntry(Map.Entry<String, Cookie> eldest) {
+					return size() > 64;
+				}
+			});
+
 	private RestAdapter() {
 		try {
 			SSLContext sslContext = SSLContext.getInstance("TLS");
@@ -82,6 +103,7 @@ public class RestAdapter {
 					.followRedirects(false)
 					.followSslRedirects(false)
 					.cookieJar(getCookieJar())
+					.addNetworkInterceptor(csrfTokenInterceptor())
 					.connectTimeout(timeout, TimeUnit.SECONDS)
 					.readTimeout(timeout, TimeUnit.SECONDS)
 					.callTimeout(timeout, TimeUnit.SECONDS)
@@ -90,6 +112,76 @@ public class RestAdapter {
 		} catch (Exception e1) {
 			throw new RuntimeException(e1);
 		}
+	}
+
+	/**
+	 * Mirrors the CSRF handling of the Fluid GWT client (RequestBuilder in
+	 * FluidUI): every response's XSRF-TOKEN cookie is remembered against the
+	 * session that issued it, and state-changing requests carrying that session
+	 * are stamped with the matching X-CSRF-TOKEN header. No-op against servers
+	 * that don't have CSRF protection enabled (no cookie ever arrives).
+	 *
+	 * <p>Registered as a network interceptor so it sees the final Cookie
+	 * header, including cookies contributed by the cookie jar.</p>
+	 */
+	private Interceptor csrfTokenInterceptor() {
+		return chain -> {
+			Request request = chain.request();
+			String sessionId = firstCookieValue(request.headers("Cookie"), SESSION_COOKIE_NAME);
+			if (sessionId != null && isCsrfProtectedMethod(request.method())
+					&& request.header(CSRF_HEADER_NAME) == null) {
+				Cookie token = csrfTokensBySession.get(sessionId);
+				if (token != null && token.matches(request.url())) {
+					request = request.newBuilder().header(CSRF_HEADER_NAME, token.value()).build();
+				}
+			}
+			okhttp3.Response response = chain.proceed(request);
+			rememberCsrfToken(sessionId, response);
+			return response;
+		};
+	}
+
+	private void rememberCsrfToken(String requestSessionId, okhttp3.Response response) {
+		Cookie token = null;
+		String responseSessionId = null;
+		for (String setCookie : response.headers("Set-Cookie")) {
+			Cookie cookie = Cookie.parse(response.request().url(), setCookie);
+			if (cookie == null) {
+				continue;
+			}
+			if (CSRF_COOKIE_NAME.equalsIgnoreCase(cookie.name())) {
+				token = cookie;
+			} else if (SESSION_COOKIE_NAME.equals(cookie.name()) && responseSessionId == null) {
+				responseSessionId = cookie.value();
+			}
+		}
+		if (token == null) {
+			return;
+		}
+		// A JSESSIONID set in the same response supersedes the session the
+		// request went out with (logins rotate the session id).
+		String sessionId = responseSessionId != null ? responseSessionId : requestSessionId;
+		if (sessionId != null && !sessionId.isEmpty()) {
+			csrfTokensBySession.put(sessionId, token);
+		}
+	}
+
+	private static boolean isCsrfProtectedMethod(String method) {
+		return "POST".equalsIgnoreCase(method) || "PUT".equalsIgnoreCase(method)
+				|| "DELETE".equalsIgnoreCase(method) || "PATCH".equalsIgnoreCase(method);
+	}
+
+	/** First occurrence wins, matching how servlet containers resolve duplicate cookies. */
+	private static String firstCookieValue(List<String> cookieHeaders, String cookieName) {
+		for (String header : cookieHeaders) {
+			for (String pair : header.split(";")) {
+				int equals = pair.indexOf('=');
+				if (equals > 0 && cookieName.equals(pair.substring(0, equals).trim())) {
+					return pair.substring(equals + 1).trim();
+				}
+			}
+		}
+		return null;
 	}
 
 	public CustomCookieJar getCookieJar() {
@@ -172,6 +264,34 @@ public class RestAdapter {
 		}
 		public void setCookies(List<Cookie> cookies){
 			this.cookies = cookies;
+		}
+		/**
+		 * Newest saved value of the named cookie, or null if absent. Login flows
+		 * read the newest because session fixation protection re-issues
+		 * JSESSIONID during authentication, leaving the stale id earlier in the jar.
+		 */
+		public String latestCookieValue(String name) {
+			String value = null;
+			for (Cookie cookie : getCookies()) {
+				if (name.equals(cookie.name())) {
+					value = cookie.value();
+				}
+			}
+			return value;
+		}
+		/**
+		 * Collapses duplicates left behind by Set-Cookie replacements (e.g. the
+		 * pre-login JSESSIONID after rotation), keeping the newest cookie per
+		 * name+domain+path.
+		 */
+		public void retainNewestCookies() {
+			Map<String, Cookie> newest = new LinkedHashMap<>();
+			for (Cookie cookie : getCookies()) {
+				newest.put(cookie.name() + ";" + cookie.domain() + ";" + cookie.path(), cookie);
+			}
+			if (newest.size() != getCookies().size()) {
+				setCookies(new ArrayList<>(newest.values()));
+			}
 		}
 		public List<BiFunction<HttpUrl, List<Cookie>, List<Cookie>>> saveFromResponseFilters(){
 			return fromCookieCriteria;

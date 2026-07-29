@@ -10,7 +10,6 @@ import fluid.test.adapter.RestAdapter.CustomCookieJar;
 import fluid.test.adapter.RestAdapter.MediaType;
 import fluid.test.message.LoadDataModeEnum;
 import fluid.test.message.LoadDataRequest;
-import okhttp3.Cookie;
 
 /**
  * Fluid authentication with cookies for PASOE environments.
@@ -33,28 +32,50 @@ public class PasoeAdapter extends AppServerAdapter{
 		setContextId(contextId);
 	}
 	
+	/**
+	 * Static resource used to (re)fetch the CSRF token cookie — the same
+	 * permitAll resource the Fluid GWT client refreshes from
+	 * (RequestBuilder.CSRF_REFRESH_URL in FluidUI).
+	 */
+	private static final String CSRF_SEED_PATH = "/images/blank.gif";
+
 	protected synchronized String loginPost(RestAdapter rest, String host, String user, String password, String extra) throws IOException {
 		final String url = host + "/static/auth/j_spring_security_check";
 		final CustomCookieJar cookieJar = rest.getCookieJar();
-		
+
 		String contextId = null;
-		
+
 		cookieJar.saveFromResponseFilters().add(CustomCookieJar.filterHttpUrlStartsWith(host));
 		try {
-			rest.post(MediaType.APPLICATION, url, 
-					"j_username="+ URLEncoder.encode(user, StandardCharsets.UTF_8.name())+"&" + 
-					"j_password="+ URLEncoder.encode(password, StandardCharsets.UTF_8.name())+"&" + 
-					"SubmitButton=Submit", 
-					Collections.singletonMap("Cookie", "FID="+extra));
-			for (Cookie cookie : cookieJar.getCookies()) {
-				if ("JSESSIONID".equals(cookie.name())) {
-					contextId = cookie.value();
-					break;
-				}
+			// With CSRF protection enabled (http.spring.csrf=true) the login
+			// POST itself is protected, so seed a pre-login session first: the
+			// GET answers with an XSRF-TOKEN cookie bound to a JSESSIONID, and
+			// the RestAdapter echoes it as X-CSRF-TOKEN on the POST below.
+			// Harmless when CSRF protection is disabled.
+			rest.get(host + CSRF_SEED_PATH);
+			String preLoginSession = cookieJar.latestCookieValue("JSESSIONID");
+			String loginCookies = (preLoginSession == null ? "" : "JSESSIONID=" + preLoginSession + "; ") + "FID=" + extra;
+
+			RestAdapter.Response loginResponse = rest.post(url,
+					"j_username="+ URLEncoder.encode(user, StandardCharsets.UTF_8.name())+"&" +
+					"j_password="+ URLEncoder.encode(password, StandardCharsets.UTF_8.name())+"&" +
+					"SubmitButton=Submit",
+					Collections.singletonMap("Cookie", loginCookies),
+					MediaType.APPLICATION);
+			if (loginResponse.getCode() == 403) {
+				throw new IOException("Login rejected with HTTP 403 — CSRF token missing or stale for " + url);
 			}
+			// Session fixation protection rotates the id during login; the
+			// authenticated session is the newest JSESSIONID, not the first.
+			contextId = cookieJar.latestCookieValue("JSESSIONID");
 			if (contextId == null || contextId.isEmpty()) {
 				throw new NullPointerException("ContextId was null or empty.");
 			}
+			cookieJar.retainNewestCookies();
+			// Login also rotates the CSRF token; fetch the replacement for the
+			// authenticated session before the first state-changing request.
+			rest.get(host + CSRF_SEED_PATH, Collections.singletonMap("Cookie", "JSESSIONID=" + contextId + "; FID=" + extra));
+			cookieJar.retainNewestCookies();
 		} catch (Exception ex) {
 			Throwable e = new Throwable(ex);
 			e.fillInStackTrace();
@@ -62,7 +83,7 @@ public class PasoeAdapter extends AppServerAdapter{
 		} finally {
 			cookieJar.saveFromResponseFilters().clear();
 		}
-		
+
 		return contextId;
 	}
 	

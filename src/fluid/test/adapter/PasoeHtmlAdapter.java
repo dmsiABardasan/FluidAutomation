@@ -3,7 +3,6 @@ package fluid.test.adapter;
 import java.io.IOException;
 
 import fluid.test.adapter.RestAdapter.CustomCookieJar;
-import okhttp3.Cookie;
 
 /**
  * Fluid authentication with cookies for PASOE environments, carrying
@@ -32,12 +31,7 @@ public abstract class PasoeHtmlAdapter extends PasoeAdapter {
 		String contextId = null;
 		try {
 			rest.get(url);
-			for (Cookie cookie : cookieJar.getCookies()) {
-				if ("JSESSIONID".equals(cookie.name())) {
-					contextId = cookie.value();
-					break;
-				}
-			}
+			contextId = cookieJar.latestCookieValue("JSESSIONID");
 			if (contextId == null || contextId.isEmpty()) {
 				throw new NullPointerException("ContextId was null or empty.");
 			}
